@@ -24,6 +24,9 @@ export * from "./source-selection.ts";
 export * from "./session-folders.ts";
 export * from "./source-label.ts";
 export * from "./render-settings.ts";
+// cjk-fonts.ts (font wave, 2026-11-22): the curated Chinese interface
+// font stacks and the id vocabulary the appearance setting stores.
+export * from "./cjk-fonts.ts";
 
 export * from "./question-core.ts";
 // The event bus (push architecture, 2026-10-02): vocabulary + emit/subscribe

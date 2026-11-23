@@ -38,6 +38,7 @@ import { isSearchEngineId, type SearchEngineId } from "./search.ts";
 import { isDictationLanguage, type DictationLanguage } from "./dictation.ts";
 import { parseFileAccessSettings, type FileAccessSettings } from "./file-access.ts";
 import { COLOR_OVERRIDE_KEYS, isThemeId, type AppearanceColorOverrides } from "./themes.ts";
+import { DEFAULT_CJK_FONT, isCjkFontId, type CjkFontId } from "./cjk-fonts.ts";
 
 /** The schema version this code understands. Bump ONLY for breaking shape
  *  changes (a field renamed/meaning changed); pure additions never bump. */
@@ -412,6 +413,9 @@ export interface AppearanceSettings {
 	/** The main reading font (everything that is Source Sans 3 today), by
 	 *  name — user-chosen from installed fonts. null = Source Sans 3. */
 	fontFamily?: string | null;
+	/** The Chinese (CJK) interface font stack (core/cjk-fonts.ts ids).
+	 *  Absent = "auto" (the curated preference list). */
+	cjkFont?: CjkFontId | null;
 	/** Reading font size in px (12–24, default 16). Headings render as
 	 *  multiples of this, so one knob scales the document coherently. */
 	proseFontSize?: number;
@@ -549,6 +553,7 @@ export interface FactorySettings {
 		background: string | null;
 		colors: AppearanceColorOverrides;
 		fontFamily: string | null;
+		cjkFont: CjkFontId;
 		proseFontSize: number;
 		codeLigatures: boolean;
 		sessionNameSerif: boolean;
@@ -576,6 +581,7 @@ export const FACTORY_SETTINGS: FactorySettings = {
 		background: null, // null = the active theme's background
 		colors: {}, // no overrides: every color is the theme's
 		fontFamily: null, // Source Sans 3
+		cjkFont: DEFAULT_CJK_FONT,
 		proseFontSize: 16,
 		codeLigatures: false,
 		sessionNameSerif: true,
@@ -830,6 +836,7 @@ function sanitizeAppearance(raw: Record<string, unknown>): AppearanceSettings {
 	if (raw.fontFamily !== undefined) {
 		out.fontFamily = typeof raw.fontFamily === "string" && raw.fontFamily.trim() ? raw.fontFamily : null;
 	}
+	if (raw.cjkFont !== undefined) out.cjkFont = isCjkFontId(raw.cjkFont) ? raw.cjkFont : null;
 	if (typeof raw.proseFontSize === "number" && Number.isFinite(raw.proseFontSize)) {
 		out.proseFontSize = clamp(Math.round(raw.proseFontSize), PROSE_FONT_MIN, PROSE_FONT_MAX);
 	}

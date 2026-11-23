@@ -33,6 +33,7 @@ import {
 } from "react";
 import {
 	BUILTIN_THEMES,
+	cjkFontStack,
 	effectiveColors,
 	FACTORY_SETTINGS,
 	resolveTheme,
@@ -51,6 +52,7 @@ export function resolveAppearance(delta: AppearanceSettings | undefined) {
 		background: delta?.background ?? f.background,
 		colors: delta?.colors ?? f.colors,
 		fontFamily: delta?.fontFamily ?? f.fontFamily,
+		cjkFont: delta?.cjkFont ?? f.cjkFont,
 		proseFontSize: delta?.proseFontSize ?? f.proseFontSize,
 		codeLigatures: delta?.codeLigatures ?? f.codeLigatures,
 		sessionNameSerif: delta?.sessionNameSerif ?? f.sessionNameSerif,
@@ -82,9 +84,12 @@ export function appearanceVars(
 	theme: Theme,
 ): Record<string, string> {
 	const vars: Record<string, string> = themeVars(effectiveColors(theme, a), theme.mode);
+	// Chinese interface font (font wave, 2026-11-22): one variable feeds both
+	// the chrome (--font-ui/--font-mono) and the prose stacks' CJK fallback.
+	vars["--lh-cjk"] = cjkFontStack(a.cjkFont);
 	if (a.fontFamily !== null) {
 		const bundled = BUNDLED_READING_FONTS[a.fontFamily];
-		vars["--font-prose"] = `"${a.fontFamily}", ${bundled ? `${bundled}, ` : ""}var(--font-sans3), ui-sans-serif, system-ui, sans-serif`;
+		vars["--font-prose"] = `"${a.fontFamily}", ${bundled ? `${bundled}, ` : ""}var(--font-sans3), var(--lh-cjk), ui-sans-serif, system-ui, sans-serif`;
 	}
 	// The ONE documented reading-size variable (typography round 4): prose,
 	// inputs, and session titles all read it, so one setProperty moves them.

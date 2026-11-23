@@ -7,7 +7,7 @@
  * first, so this never bakes into a prerender).
  */
 
-import { effectiveColors, isBuiltinThemeId, resolveTheme, themeVars, type AppearanceSettings, type Theme } from "../core";
+import { cjkFontStack, effectiveColors, isBuiltinThemeId, resolveTheme, themeVars, type AppearanceSettings, type Theme } from "../core";
 import { themeStore } from "../store/themes.ts";
 import { readSettings } from "../store/settings.ts";
 
@@ -25,5 +25,9 @@ export function readThemeBoot(): ThemeBoot {
 	const id = appearance?.theme;
 	const custom = id && !isBuiltinThemeId(id) ? themeStore.readTheme(id) : null;
 	const theme = resolveTheme(id, custom ? [custom] : []);
-	return { appearance, theme, vars: themeVars(effectiveColors(theme, appearance), theme.mode) };
+	const vars = themeVars(effectiveColors(theme, appearance), theme.mode);
+	// Chinese interface font on the first frame (font wave, 2026-11-22):
+	// same variable the client provider writes, so no flash of the wrong face.
+	vars["--lh-cjk"] = cjkFontStack(appearance?.cjkFont);
+	return { appearance, theme, vars };
 }

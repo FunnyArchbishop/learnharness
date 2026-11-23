@@ -33,7 +33,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
+	CJK_FONT_IDS,
+	CJK_FONT_LABELS,
+	DEFAULT_CJK_FONT,
 	EXTRACTION_CHUNK_TOKENS_FLOOR,
+	isCjkFontId,
 	TRANSCRIPT_WIDTH_MAX_REM,
 	TRANSCRIPT_WIDTH_MIN_REM,
 	TRANSCRIPT_WIDTH_STEP_REM,
@@ -51,7 +55,7 @@ import { useT } from "@/components/i18n";
 import { BUNDLED_READING_FONTS, useAppearance } from "./appearance.tsx";
 import { FontMenuList } from "./model-menu";
 import { ThemeCards } from "./theme-cards.tsx";
-import { CommitInput, SettingsMenuTrigger, SettingsRow, Toggle } from "./controls.tsx";
+import { CommitInput, SettingsMenuTrigger, SettingsRow, ThinSelect, Toggle } from "./controls.tsx";
 
 /** The slider position past the last width step: Full (no cap). */
 const TRANSCRIPT_FULL_POSITION = TRANSCRIPT_WIDTH_MAX_REM + TRANSCRIPT_WIDTH_STEP_REM;
@@ -442,6 +446,27 @@ export function AppearanceSection({
 						</MenuShell>
 					)}
 				</span>
+			</SettingsRow>
+			{/* Chinese interface font (font wave, 2026-11-22): the CJK fallback
+			    for chrome + prose. "auto" prefers the nicest faces current
+			    systems ship; picking a family pins it. */}
+			<SettingsRow
+				label={t("Chinese font")}
+				hint={t("Used for Chinese characters in the interface")}
+				testid="row-cjk-font"
+			>
+				<ThinSelect
+					value={appearance?.cjkFont ?? DEFAULT_CJK_FONT}
+					ariaLabel="Chinese interface font"
+					testid="cjk-font-select"
+					onChange={(next) => {
+						onSectionChange({ ...appearance, cjkFont: isCjkFontId(next) ? next : DEFAULT_CJK_FONT });
+					}}
+				>
+					{CJK_FONT_IDS.map((id) => (
+						<option key={id} value={id}>{CJK_FONT_LABELS[id]}</option>
+					))}
+				</ThinSelect>
 			</SettingsRow>
 			<SettingsRow label={t("Reading font size")} hint={`${resolved.proseFontSize}px`} testid="row-prose-size">
 				<CommitInput

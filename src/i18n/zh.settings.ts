@@ -267,4 +267,8 @@ export const zh: Record<string, string> = {
 		"预算固定值不会改变后端的上下文大小。留空则使用上报的限制，再退回默认值（8192 上下文 / 4096 输出）。自定义定价未知。",
 	"Reasoning support is a capability declaration. The effort picker’s Off may not disable a custom backend’s default thinking.":
 		"推理支持只是能力声明。强度选择器的「关闭」可能无法禁用自定义后端的默认思考。",
+
+	// ── Appearance: Chinese interface font (font wave) ──────────────────
+	"Chinese font": "中文界面字体",
+	"Used for Chinese characters in the interface": "选择界面中文字符使用的字体",
 };

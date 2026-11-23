@@ -42,6 +42,11 @@
 .dark {
 	color-scheme: dark;
 	--radius: 8px;
+	/* Chinese interface font stack (font wave, 2026-11-22). The Latin
+	   faces carry no CJK glyphs, so Chinese characters fall through to
+	   this list; Settings → Appearance can pin one family instead and the
+	   appearance vars override it inline. */
+	--lh-cjk: "Noto Sans SC", "PingFang SC", "HarmonyOS Sans SC", "MiSans", "Source Han Sans SC", "Microsoft YaHei UI", "Microsoft YaHei", "DengXian", "Hiragino Sans GB", sans-serif;
 	--background: #141414;
 	--foreground: #e6e6e6;
 	--card: #1c1c1c;
@@ -107,8 +112,8 @@
 	   (Source Sans 3 by default). The loading-face variables attach in
 	   app/layout.tsx. Keep the sans alias pointed at the RUNTIME prose token,
 	   not the loading face, so font-sans also honors Appearance changes. */
-	--font-ui: var(--font-jetbrains), ui-monospace, SFMono-Regular, monospace;
-	--font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, monospace;
+	--font-ui: var(--font-jetbrains), var(--lh-cjk), ui-monospace, SFMono-Regular, monospace;
+	--font-mono: var(--font-jetbrains), var(--lh-cjk), ui-monospace, SFMono-Regular, monospace;
 	--font-sans: var(--font-prose);
 	/* The modular type ladder — each size carries its own line-height.
 	   Component sizes must pull from this ladder. (owner, typography
@@ -685,7 +690,7 @@ body {
    independently, whether titles use serif or the reading family. Non-inline
    utilities read these vars; Source Sans 3 remains the default/loading face. */
 @theme {
-	--font-prose: var(--font-sans3), ui-sans-serif, system-ui, sans-serif;
+	--font-prose: var(--font-sans3), var(--lh-cjk), ui-sans-serif, system-ui, sans-serif;
 	--font-title: "lh-cmu", serif;
 }
 

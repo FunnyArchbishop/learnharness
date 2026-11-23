@@ -14,6 +14,7 @@
 import path from "node:path";
 import type { ThinkingLevel } from "@earendil-works/pi-agent-core";
 import { isHexColor, type ChatSettings } from "../core";
+import { CJK_FONT_IDS, isCjkFontId, type CjkFontId } from "../core/cjk-fonts.ts";
 import { COLOR_OVERRIDE_KEYS, isThemeId, type AppearanceColorOverrides, type ColorOverrideKey } from "../core/themes.ts";
 import type {
 	AgentSettings,
@@ -273,6 +274,12 @@ export function parseAppearanceSettingsBody(body: unknown): SettingsBodyResult<A
 			return { ok: false, error: "fontFamily must be a non-empty string or null" };
 		}
 		settings.fontFamily = raw.fontFamily as string | null;
+	}
+	if (raw.cjkFont !== undefined) {
+		if (raw.cjkFont !== null && !isCjkFontId(raw.cjkFont)) {
+			return { ok: false, error: `cjkFont must be one of ${CJK_FONT_IDS.join(", ")} or null` };
+		}
+		settings.cjkFont = raw.cjkFont as CjkFontId | null;
 	}
 	if (raw.proseFontSize !== undefined) {
 		if (

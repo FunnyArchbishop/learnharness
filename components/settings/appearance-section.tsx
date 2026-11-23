@@ -46,6 +46,8 @@ import {
 import { MenuShell } from "@/components/menu-shell";
 import { useInteractionLayers } from "@/components/interaction-layers";
 import { Hint } from "@/components/ui/hint";
+import { interpolate, type Translator } from "@/src/i18n";
+import { useT } from "@/components/i18n";
 import { BUNDLED_READING_FONTS, useAppearance } from "./appearance.tsx";
 import { FontMenuList } from "./model-menu";
 import { ThemeCards } from "./theme-cards.tsx";
@@ -56,8 +58,8 @@ const TRANSCRIPT_FULL_POSITION = TRANSCRIPT_WIDTH_MAX_REM + TRANSCRIPT_WIDTH_STE
 
 /** The transcript width's label: px at the root's 16px rem, or Full.
  *  Exported for tests. */
-export function transcriptWidthLabel(rem: number | null): string {
-	return rem === null ? "Full" : `${rem * 16}px`;
+export function transcriptWidthLabel(rem: number | null, t: Translator = interpolate): string {
+	return rem === null ? t("Full") : `${rem * 16}px`;
 }
 
 /**
@@ -66,6 +68,7 @@ export function transcriptWidthLabel(rem: number | null): string {
  * native `change` (release / keyboard step) — not one write per tick.
  */
 function TranscriptWidthSlider({ value, onCommit }: { value: number | null; onCommit: (rem: number | null) => void }) {
+	const { t } = useT();
 	const position = value ?? TRANSCRIPT_FULL_POSITION;
 	const [draft, setDraft] = useState(position);
 	const inputRef = useRef<HTMLInputElement>(null);
@@ -89,7 +92,7 @@ function TranscriptWidthSlider({ value, onCommit }: { value: number | null; onCo
 				ref={inputRef}
 				type="range"
 				aria-label="Transcript width"
-				aria-valuetext={transcriptWidthLabel(draftRem)}
+				aria-valuetext={transcriptWidthLabel(draftRem, t)}
 				data-testid="input-transcript-width"
 				min={TRANSCRIPT_WIDTH_MIN_REM}
 				max={TRANSCRIPT_FULL_POSITION}
@@ -98,7 +101,7 @@ function TranscriptWidthSlider({ value, onCommit }: { value: number | null; onCo
 				onChange={(e) => setDraft(Number(e.target.value))}
 				className="h-1.5 w-40 accent-primary"
 			/>
-			<span data-testid="transcript-width-value" className="w-12 text-right text-[11px] tabular-nums text-muted-foreground">{transcriptWidthLabel(draftRem)}</span>
+			<span data-testid="transcript-width-value" className="w-12 text-right text-[11px] tabular-nums text-muted-foreground">{transcriptWidthLabel(draftRem, t)}</span>
 		</span>
 	);
 }
@@ -220,10 +223,11 @@ function ColorOverrideRow({
 	effective: string;
 	onCommit: (next: string) => boolean | Promise<boolean>;
 }) {
+	const { t } = useT();
 	const { label, note } = COLOR_LABELS[colorKey];
-	const empty = `Empty = ${themeColor}`;
+	const empty = t("Empty = {{value}}", { value: themeColor });
 	return (
-		<SettingsRow label={label} hint={note ? `${note} · ${empty}` : empty} testid={`row-color-${colorKey}`}>
+		<SettingsRow label={t(label)} hint={note ? `${t(note)} · ${empty}` : empty} testid={`row-color-${colorKey}`}>
 			<span className="flex items-center gap-2">
 				<span
 					aria-hidden
@@ -253,6 +257,7 @@ export function AppearanceSection({
 	onSectionChange: (next: AppearanceSettings) => boolean | Promise<boolean>;
 }) {
 	const { appearance: resolved, activeTheme, colors, themes, refreshThemes } = useAppearance();
+	const { t } = useT();
 	const md = appearance?.mdRendering;
 
 	// The font dropdown's open state + its enumeration cache. undefined =
@@ -353,9 +358,9 @@ export function AppearanceSection({
 			<div data-testid="group-colors" className="mt-5 flex flex-col gap-2">
 				<div className="flex items-end justify-between gap-4">
 					<p className="text-xs uppercase tracking-widest text-muted-foreground">
-						Colors{" "}
+						{t("Colors")}{" "}
 						<span className="normal-case tracking-normal text-muted-foreground/70">
-							· overrides on top of the theme, kept when you switch
+							{t("· overrides on top of the theme, kept when you switch")}
 						</span>
 					</p>
 					<button
@@ -364,7 +369,7 @@ export function AppearanceSection({
 						onClick={() => onSectionChange(clearColorOverrides(appearance))}
 						className="h-6 shrink-0 rounded-sm px-2 font-ui text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 					>
-						Reset all
+						{t("Reset all")}
 					</button>
 				</div>
 				<div className="grid grid-cols-2 gap-x-10 gap-y-2">
@@ -380,10 +385,10 @@ export function AppearanceSection({
 					))}
 				</div>
 			</div>
-			<p className="mt-5 mb-2 text-xs uppercase tracking-widest text-muted-foreground">Typography</p>
+			<p className="mt-5 mb-2 text-xs uppercase tracking-widest text-muted-foreground">{t("Typography")}</p>
 			<SettingsRow
-				label="Reading font"
-				hint={`Empty = ${DEFAULT_READING_FONT}`}
+				label={t("Reading font")}
+				hint={t("Empty = {{value}}", { value: DEFAULT_READING_FONT })}
 				testid="row-font"
 			>
 				<span ref={fontMenuOpen ? menuAnchorRef : undefined} className="relative flex items-center gap-2">
@@ -407,7 +412,7 @@ export function AppearanceSection({
 						return fontMenuOpen ? (
 							triggerButton
 						) : (
-							<Hint label="Choose from your installed fonts" side="left">
+							<Hint label={t("Choose from your installed fonts")} side="left">
 								{triggerButton}
 							</Hint>
 						);
@@ -429,16 +434,16 @@ export function AppearanceSection({
 										? undefined
 										: localFonts === null
 											? enumEmpty
-												? "Common families — installed fonts could not be read"
-												: "Common families — your installed list needs the desktop app"
-											: "Your installed fonts"
+												? t("Common families — installed fonts could not be read")
+												: t("Common families — your installed list needs the desktop app")
+											: t("Your installed fonts")
 								}
 							/>
 						</MenuShell>
 					)}
 				</span>
 			</SettingsRow>
-			<SettingsRow label="Reading font size" hint={`${resolved.proseFontSize}px`} testid="row-prose-size">
+			<SettingsRow label={t("Reading font size")} hint={`${resolved.proseFontSize}px`} testid="row-prose-size">
 				<CommitInput
 					type="number"
 					value={String(appearance?.proseFontSize ?? "")}
@@ -458,28 +463,28 @@ export function AppearanceSection({
 					}}
 				/>
 			</SettingsRow>
-			<SettingsRow label="Code ligatures" testid="row-code-ligatures">
+			<SettingsRow label={t("Code ligatures")} testid="row-code-ligatures">
 				<Toggle
 					checked={resolved.codeLigatures}
 					label="Code ligatures"
 					onChange={(on) => onSectionChange({ ...appearance, codeLigatures: on })}
 				/>
 			</SettingsRow>
-			<SettingsRow label="Session names in serif" testid="row-session-serif">
+			<SettingsRow label={t("Session names in serif")} testid="row-session-serif">
 				<Toggle
 					checked={appearance?.sessionNameSerif ?? true}
 					label="session names serif"
 					onChange={(on) => onSectionChange({ ...appearance, sessionNameSerif: on })}
 				/>
 			</SettingsRow>
-			<SettingsRow label="Compact session list" testid="row-compact-session-list">
+			<SettingsRow label={t("Compact session list")} testid="row-compact-session-list">
 				<Toggle
 					checked={resolved.compactSessionList}
 					label="Compact session list"
 					onChange={(on) => onSectionChange({ ...appearance, compactSessionList: on })}
 				/>
 			</SettingsRow>
-			<SettingsRow label="Heading weight" hint={`${resolved.mdRendering.headingWeight}`} testid="row-heading-weight">
+			<SettingsRow label={t("Heading weight")} hint={`${resolved.mdRendering.headingWeight}`} testid="row-heading-weight">
 				<CommitInput
 					type="number"
 					value={String(md?.headingWeight ?? "")}
@@ -501,14 +506,14 @@ export function AppearanceSection({
 					}}
 				/>
 			</SettingsRow>
-			<SettingsRow label="Transcript width" testid="row-transcript-width">
+			<SettingsRow label={t("Transcript width")} testid="row-transcript-width">
 				<TranscriptWidthSlider
 					value={resolved.transcriptMaxWidth}
 					// Full = absence (the unset representation for numbers).
 					onCommit={(rem) => { void onSectionChange({ ...appearance, transcriptMaxWidth: rem ?? undefined }); }}
 				/>
 			</SettingsRow>
-			<SettingsRow label="Adapt question layout" testid="row-adaptive-questions">
+			<SettingsRow label={t("Adapt question layout")} testid="row-adaptive-questions">
 				<Toggle
 					checked={resolved.adaptiveQuestions}
 					label="Adapt question layout"
@@ -538,6 +543,7 @@ export function GraphSection({
 	// the hint and placeholder report exactly the number the trigger waits
 	// for — never a second hand-rolled default.
 	const resolved = resolveSettings(graph === undefined ? null : { version: 1, graph }).graph;
+	const { t } = useT();
 	return (
 		<>
 			{/* EXTRACTION (renamed, owner 2026-10-06): this switch is the DATA
@@ -546,7 +552,7 @@ export function GraphSection({
 			    switch below arrived: off ≠ no graph, off = the graph stops
 			    growing. The testid keeps the old name's shape (row-enabled) so
 			    this stays one rename, not a test re-pin. */}
-			<SettingsRow label="Extraction" hint="Off = the graph stops growing" testid="graph-row-enabled">
+			<SettingsRow label={t("Extraction")} hint={t("Off = the graph stops growing")} testid="graph-row-enabled">
 				<Toggle
 					checked={graph?.enabled ?? true}
 					label="extraction enabled"
@@ -562,7 +568,7 @@ export function GraphSection({
 			    round): display-only. Off = the home shows the chains view
 			    instead of the canvas. The ledgers, the pipeline, everything
 			    data keeps working — that is the extraction switch above. */}
-			<SettingsRow label="Graph rendering" hint="Off = home shows the chains view" testid="graph-row-rendering">
+			<SettingsRow label={t("Graph rendering")} hint={t("Off = home shows the chains view")} testid="graph-row-rendering">
 				<Toggle
 					checked={graph?.rendering ?? true}
 					label="graph rendering enabled"
@@ -570,7 +576,7 @@ export function GraphSection({
 				/>
 			</SettingsRow>
 			<SettingsRow
-				label="Extraction chunk budget"
+				label={t("Extraction chunk budget")}
 				hint={`${resolved.extractionChunkTokens} tok`}
 				testid="graph-row-chunk-tokens"
 			>

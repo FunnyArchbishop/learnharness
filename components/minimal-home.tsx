@@ -24,6 +24,7 @@ import { ChainTableOverlay } from "@/components/chain-table.tsx";
 import { GraphCostControl } from "@/components/graph-view.tsx";
 import { NotesImportControl, NotesImportErrors, NotesImportNotices, useNotesImport } from "@/components/notes-import.tsx";
 import { Hint } from "@/components/ui/hint";
+import { useT } from "@/components/i18n";
 import type { ChatSummary, GraphCostSummary, GraphSnapshot } from "@/src/core";
 
 /** The quiet centered summary — a pure body (props in, markup out) so
@@ -44,6 +45,7 @@ export function KnowledgeSummary({
 }) {
 	const empty =
 		propositions === 0 && chains === 0 && teachSessions === 0 && practiceSessions === 0 && importedNotes === 0;
+	const { t } = useT();
 	return (
 		<div data-testid="knowledge-summary" className="flex flex-col items-center text-center">
 			{/* Own-line law (owner, 2026-10-06): every count sits on its own
@@ -52,29 +54,29 @@ export function KnowledgeSummary({
 			    list) rides after the same parting. */}
 			<div className="flex flex-col gap-1">
 				<p className="font-ui text-sm text-muted-foreground">
-					{propositions} {propositions === 1 ? "proposition" : "propositions"}
+					{t(propositions === 1 ? "{{n}} proposition" : "{{n}} propositions", { n: propositions })}
 				</p>
 				<p className="font-ui text-sm text-muted-foreground">
-					{chains} {chains === 1 ? "chain" : "chains"}
+					{t(chains === 1 ? "{{n}} chain" : "{{n}} chains", { n: chains })}
 				</p>
 			</div>
 			<div className="h-4" aria-hidden="true" />
 			<div className="flex flex-col gap-1">
 				<p className="font-ui text-sm text-muted-foreground">
-					{teachSessions} {teachSessions === 1 ? "teaching session" : "teaching sessions"}
+					{t(teachSessions === 1 ? "{{n}} teaching session" : "{{n}} teaching sessions", { n: teachSessions })}
 				</p>
 				<p className="font-ui text-sm text-muted-foreground">
-					{practiceSessions} {practiceSessions === 1 ? "practice session" : "practice sessions"}
+					{t(practiceSessions === 1 ? "{{n}} practice session" : "{{n}} practice sessions", { n: practiceSessions })}
 				</p>
 			</div>
 			<div className="h-4" aria-hidden="true" />
 			<p className="font-ui text-sm text-muted-foreground">
-				{importedNotes} {importedNotes === 1 ? "imported note" : "imported notes"}
+				{t(importedNotes === 1 ? "{{n}} imported note" : "{{n}} imported notes", { n: importedNotes })}
 			</p>
 			{empty && (
 				<div className="pt-2 font-ui text-xs text-muted-foreground/70">
-					<p>Start a session to begin learning.</p>
-					<p className="mt-1">Attach your material with the paperclip or drag and drop.</p>
+					<p>{t("Start a session to begin learning.")}</p>
+					<p className="mt-1">{t("Attach your material with the paperclip or drag and drop.")}</p>
 				</div>
 			)}
 		</div>
@@ -98,6 +100,7 @@ export function MinimalHome({
 	const [costs, setCosts] = useState<GraphCostSummary | null>(null);
 	const [chats, setChats] = useState<ChatSummary[]>([]);
 	const [chainsOpen, setChainsOpen] = useState(false);
+	const { t } = useT();
 
 	const readState = useCallback(() => {
 		fetch("/api/graph")
@@ -157,7 +160,7 @@ export function MinimalHome({
 			<div className="lh-no-drag lh-wco-floating absolute right-2 top-2 z-10 flex max-w-[calc(100%-5.5rem)] flex-col items-end gap-2">
 				<div className="flex min-w-0 items-start gap-2">
 					<div className="graph-chrome-fade-in shrink-0 rounded-xl border bg-card/85 px-1 py-[3px] shadow-lg backdrop-blur">
-						<Hint label="Every reasoning chain" side="bottom">
+						<Hint label={t("Every reasoning chain")} side="bottom">
 							<button
 								type="button"
 								onClick={() => setChainsOpen(true)}
@@ -165,7 +168,7 @@ export function MinimalHome({
 								className="flex h-7 items-center gap-1.5 rounded-lg px-2.5 text-xs text-muted-foreground transition-colors hover:bg-accent"
 							>
 								<ListTreeIcon className="size-3" />
-								Chains
+								{t("Chains")}
 							</button>
 						</Hint>
 					</div>

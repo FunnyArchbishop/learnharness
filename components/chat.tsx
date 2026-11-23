@@ -8,6 +8,7 @@ import { PluginSubmissionRunner, SubmissionModelEpoch, type SubmissionAttempt } 
 import { submissionImages, type BuiltinSubmissionCapture, type PrepareBuiltinSubmission, type PrepareThinkingSubmission, type PreparePluginQuestionSubmission, type PreparePluginProblemSubmission } from "./plugin-submission-adapters";
 import { SubmittedImages } from "./submitted-images";
 import { usePageSurfaceBoundary, SurfaceRegion } from "./plugin-surfaces";
+import { useT } from "@/components/i18n";
 import { findSurfaceBoundary } from "./plugin-surface-targets";
 import { scheduleOpeningSubmission } from "./plugin-submission-opening";
 import { activeProblemOccurrenceOf, buildAnswer, toClientQuestion, type PluginSubmission, type PluginSubmissionTarget, type QuestionData } from "@/src/core";
@@ -247,10 +248,11 @@ function SystemLine({ children, testId }: { children: React.ReactNode; testId?: 
 /** One immediate optimistic placeholder; only its wording changes during
  * host-managed submission evaluation. The spinner keeps its identity. */
 export function PendingTurnIndicator({ evaluating }: { evaluating: boolean }) {
+	const { t } = useT();
 	return (
 		<span className="flex items-center gap-2 font-ui text-xs font-medium uppercase tracking-wide text-muted-foreground">
 			<BrailleSpinner label={evaluating ? "Evaluating" : "Thinking"} />
-			<Shimmer duration={1}>{evaluating ? "EVALUATING…" : "THINKING…"}</Shimmer>
+			<Shimmer duration={1}>{evaluating ? t("EVALUATING…") : t("THINKING…")}</Shimmer>
 		</span>
 	);
 }
@@ -302,6 +304,9 @@ export function Chat({
 	// settled terminal's callback — a stable ref assigned below, once
 	// syncFromServer exists (refs, not closures: no stale capture).
 	const reattachSettledRef = useRef<() => void>(() => {});
+
+	// UI strings (localization layer): the English source is the lookup key.
+	const { t } = useT();
 
 	// THE SESSION HOOK (Wave D, owner-approved 2026-09-26): the app-owned
 	// replacement for useChat + the AI-SDK transport. The record is native
@@ -760,7 +765,7 @@ export function Chat({
 		let captured = "";
 		void runSubmission(target, () => ({ type: "thinking", content: { text: captured = capture(), images: [] } }), () => !busyRef.current && JSON.stringify(activeProblemOccurrenceOf(submissionLive.current.nativeMessages)) === JSON.stringify(target.problem.occurrence), async (prepared, attempt) => {
 			if (prepared.type !== "thinking") return false;
-			if (!prepared.content.text.trim() && !prepared.content.images.length) throw new Error("Thinking text or images are required. Your input has been kept.");
+			if (!prepared.content.text.trim() && !prepared.content.images.length) throw new Error(t("Thinking text or images are required. Your input has been kept."));
 			attempt.deliver();
 			return send({ type: "thinking", problemCallId: target.problem.occurrence.toolCallId, occurrence: target.problem.occurrence, text: prepared.content.text, ...(prepared.content.images.length ? { images: prepared.content.images.map(image => ({ ...image })) } : {}) }, () => { clear(captured); attempt.accepted(); }, undefined, attempt.refused);
 		});
@@ -818,7 +823,7 @@ export function Chat({
 		let captured = "", capturedRevision = 0;
 		return runSubmission(target, () => { capturedRevision = composerEditRevision.current; return { type: "text", content: { text: captured = supplied ?? textRef.current.trim(), images: [] } }; }, () => submissionLive.current.ready && !pendingQuestionOf(submissionLive.current.nativeMessages) && !pendingPluginQuestionOf(submissionLive.current.nativeMessages) && !activeProblemOf(submissionLive.current.nativeMessages), async (prepared, attempt) => {
 			if (prepared.type !== "text") return false;
-			if (!prepared.content.text.trim() && !prepared.content.images.length) throw new Error("Message text or images are required. Your input has been kept.");
+			if (!prepared.content.text.trim() && !prepared.content.images.length) throw new Error(t("Message text or images are required. Your input has been kept."));
 			if (beforePost && !beforePost(captured)) { attempt.cancel(); return false; }
 			draftRef.current = captured;
 			const accepted = () => { if (composerEditRevision.current === capturedRevision && textRef.current.trim() === captured) applyText(""); openingAccepted?.(); attempt.accepted(); };
@@ -1039,7 +1044,7 @@ export function Chat({
 		return <div className="mt-1 flex justify-end">
 			<Button type="button" variant="ghost" size="icon-xs" data-testid="side-conversation-button" data-side-segment-id={sourceMessageId}
 				data-has-history={hasHistory} aria-label={hasHistory ? "Open side conversation" : "Ask a side question"}
-				title={hasHistory ? "Open side conversation" : "Ask a side question"}
+				title={hasHistory ? t("Open side conversation") : t("Ask a side question")}
 				className={hasHistory ? "border border-border/60 text-muted-foreground" : "text-muted-foreground/40 hover:text-muted-foreground"}
 				onClick={(event) => openSideThread({ sourceMessageId, anchor: { kind: "element", element: event.currentTarget } })}>
 				<MessageCircleQuestionIcon aria-hidden className="size-3.5" fill="currentColor" fillOpacity={hasHistory ? 0.12 : 0} />
@@ -1060,7 +1065,7 @@ export function Chat({
 		return () => window.removeEventListener(kbdEventForChat("toggle-question-thread"), toggleQuestionThread);
 	}, [toggleQuestionThread]);
 	// Advancing the lesson does not close or disable an old conversation.
-	const sideActions = useMemo(() => createSideQuestionActions({ open: openSideThread }), [openSideThread]);
+	const sideActions = useMemo(() => createSideQuestionActions({ open: openSideThread, t }), [openSideThread, t]);
 	const selectionActions = useMemo(() => [citeAction, ...sideActions], [citeAction, sideActions]);
 	const router = useRouter();
 	const transcriptElementRef = useRef<HTMLElement | null>(null);
@@ -1589,7 +1594,7 @@ export function Chat({
 		return { type: "unavailable", ...(expected ? { occurrence: expected } : {}), expanded: false, revealed: false };
 	};
 	const actionContext = () => surfaceTarget ? createPluginSessionActionContext({ placement: "top-bar", surface: "session", sessionId: chatId, kind: kind === "practice" ? "practice" : "teaching", surfaceTarget }, () => {
-		if (!submissionMounted.current || submissionLive.current.surfaceTarget !== surfaceTarget) throw new Error("This session view is no longer active.");
+		if (!submissionMounted.current || submissionLive.current.surfaceTarget !== surfaceTarget) throw new Error(t("This session view is no longer active."));
 		return {
 			sessionId: chatId, kind: kind === "practice" ? "practice" : "teaching", title: titleText,
 			messages: nativeMessages, transcript: messages, status, reconciliation, busy, compacting,
@@ -1679,7 +1684,7 @@ export function Chat({
 								spellCheck={false}
 								data-plugin-chrome-title
 								aria-label="Session title"
-								title="Rename this session"
+								title={t("Rename this session")}
 								className="lh-no-drag min-w-[8ch] max-w-[70%] shrink-0 bg-transparent font-title text-3xl tracking-tight caret-current outline-none [field-sizing:content]"
 							/>
 							{/* flex-1 spacer during rename too, so the chips stay at
@@ -1691,7 +1696,7 @@ export function Chat({
 					<>
 						<Hint
 							// F2 renames (registry) — surfaced on the hover.
-							label="Rename session"
+							label={t("Rename session")}
 							action="rename-session"
 							side="bottom"
 						>
@@ -1716,7 +1721,7 @@ export function Chat({
 					    structure beside the phase chip — access to the full-DAG popup
 					    at every width; the marginalia is the wide-screen glance view. */}
 					{planTree && (
-						<Hint label="Open the full plan" side="bottom">
+						<Hint label={t("Open the full plan")} side="bottom">
 <button
 							type="button"
 							data-testid="plan-chip"
@@ -1727,7 +1732,7 @@ export function Chat({
 							className="lh-no-drag flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full border border-border/80 px-2 py-0.5 text-xs font-medium uppercase tracking-wide text-muted-foreground transition-colors hover:border-border hover:text-foreground"
 						>
 							<WaypointsIcon className="size-3.5 text-primary" aria-hidden />
-							Plan
+							{t("Plan")}
 						</button>
 </Hint>
 					)}
@@ -1749,7 +1754,7 @@ export function Chat({
 							className="pointer-events-none flex shrink-0 select-none items-center gap-1 text-xs font-medium uppercase tracking-wide text-muted-foreground"
 						>
 							<DumbbellIcon className="size-3" />
-							Practice
+							{t("Practice")}
 						</span>
 					) : (
 						<PhaseChip phase={phases.at(-1) ?? "probe"} />
@@ -1766,8 +1771,8 @@ export function Chat({
 						<div data-session-find-root="" className={`${COLUMN} flex flex-1 flex-col gap-4 pt-4`}>
 							{messages.length === 0 && !busy && (
 								<ConversationEmptyState
-									title="New session"
-									description="The teacher will open by probing what you already know."
+									title={t("New session")}
+									description={t("The teacher will open by probing what you already know.")}
 								/>
 							)}
 
@@ -1822,7 +1827,7 @@ export function Chat({
 														className="my-4 flex items-center justify-center gap-1.5 font-ui text-xs font-medium uppercase tracking-wide text-muted-foreground"
 													>
 														<ArrowRightIcon className="size-3" />
-														Next problem
+														{t("Next problem")}
 													</div>
 												);
 											default:
@@ -1882,7 +1887,7 @@ export function Chat({
 												{/* The rail GROUPS (owner round 4, 2026-10-05): the YOU heading
 												    sits INSIDE the rail, same mono-xs register and same 1ch
 												    rail as the thinking rows — one quote geometry. */}
-												<div className="font-medium uppercase tracking-wide text-muted-foreground">You</div>
+												<div className="font-medium uppercase tracking-wide text-muted-foreground">{t("You")}</div>
 												<div className="lh-prose whitespace-pre-wrap text-foreground">
 													<PathText text={m.parts.filter((p) => p.type === "text").map((p) => p.text).join("\n")} />
 												</div>
@@ -1918,7 +1923,7 @@ export function Chat({
 												) {
 													return (
 														<SystemLine key={`retry-${pi}`} testId="tool-retry">
-															Retrying…
+															{t("Retrying…")}
 														</SystemLine>
 													);
 												}
@@ -1961,7 +1966,7 @@ export function Chat({
 													case "tool-recall": {
 														const malformed = !busy && malformedQuestions.find(call => call.messageId === part.sourceMessageId && call.contentIndex === part.sourceContentIndex && call.toolCallId === part.toolCallId);
 														if (malformed) return <MalformedQuestion key={pi} disabled={!!pending || compacting}
-															reason={pending ? "Answer or discard the remaining question first." : undefined}
+															reason={pending ? t("Answer or discard the remaining question first.") : undefined}
 															onRetry={() => {
 																draftRef.current = null;
 																void send({ type: "retry-question", messageId: malformed.messageId, contentIndex: malformed.contentIndex, toolCallId: malformed.toolCallId });
@@ -2016,7 +2021,7 @@ export function Chat({
 							{compacting && (
 								<span className="flex items-center gap-2 font-ui text-xs font-medium uppercase tracking-wide text-muted-foreground">
 									<BrailleSpinner label="Compacting context" />
-									<Shimmer duration={1}>COMPACTING CONTEXT…</Shimmer>
+									<Shimmer duration={1}>{t("COMPACTING CONTEXT…")}</Shimmer>
 								</span>
 							)}
 							{(status === "submitted" || turnInFlight) && (
@@ -2025,10 +2030,10 @@ export function Chat({
 							{openingError && <p role="alert" className="text-sm text-destructive">{OPENING_PROMPT_FAILURE}</p>}
 							{error && (
 								<div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/50 bg-destructive/10 px-3 py-2 text-sm">
-									<span>Something went wrong: {error.message}</span>
+									<span>{t("Something went wrong: {{message}}", { message: error.message })}</span>
 									{retryable && (
 										<Button variant="outline" size="xs" data-testid="retry-failed-turn" onClick={retryFailedTurn}>
-											Retry
+											{t("Retry")}
 										</Button>
 									)}
 								</div>
@@ -2113,7 +2118,7 @@ export function Chat({
 										onClick={() => setSetupOpen(true)}
 										className="rounded-sm border border-border bg-card px-3 py-1.5 font-ui text-xs text-foreground transition-colors hover:border-muted-foreground/50 hover:bg-accent cursor-pointer"
 									>
-										Set up your models
+										{t("Set up your models")}
 									</button>
 								</div>
 							)
@@ -2141,7 +2146,7 @@ export function Chat({
 							// applies.
 							nextProblem={nextReady}
 							onNext={sendNext}
-							placeholder={nextReady ? "Ask anything, or press Enter for the next one." : undefined}
+							placeholder={nextReady ? t("Ask anything, or press Enter for the next one.") : undefined}
 						/>
 					}
 					onSubmitAnswer={(output) => {
@@ -2498,6 +2503,7 @@ export function DockOverlay({
 	setupCta?: React.ReactNode;
 }) {
 	const controller = useOptionalInteractionLayers();
+	const { t } = useT();
 	const { isAtBottom, scrollToBottom, scrollRef } = useStickToBottomContext();
 	// Render-fresh bottom state (flicker round): the arrival block below reads
 	// it DURING RENDER — the same value the after-paint effect used to read a
@@ -2914,7 +2920,7 @@ export function DockOverlay({
 					<div ref={viewportRef} data-dock-viewport="" className="pointer-events-auto">
 					<div ref={bodyRef}>
 					{setupCta}
-					{reconciliation === "failed" && <div role="alert" className="mb-2 rounded-2xl border bg-card px-4 py-3 text-sm">Could not sync the saved session. <Button type="button" variant="ghost" onClick={onRetrySync}>Retry syncing</Button></div>}
+					{reconciliation === "failed" && <div role="alert" className="mb-2 rounded-2xl border bg-card px-4 py-3 text-sm">{t("Could not sync the saved session.")} <Button type="button" variant="ghost" onClick={onRetrySync}>{t("Retry syncing")}</Button></div>}
 					{/* The queued-steer indicator (owner spec 2026-10-03): quiet
 					    one-liners above the shell - right-aligned to where its corner
 					    rounding starts, truncated, no background, no container. A
@@ -2956,8 +2962,8 @@ export function DockOverlay({
 								<PluginQuestionDock viewReader={customViewReader} snapshot={pluginQuestion} chatId={chatId} draft={pluginDraft} expanded={expanded} reveal={revealPending} onExpand={expandAndReveal} ready={pluginReady} available={pluginAvailable} reconciliation={reconciliation} readingRef={readingInputRef} onMicAvailable={onPluginMicAvailable} send={onPluginSend} dismiss={onPluginDismiss} prepareSubmission={onPreparePluginQuestion} />
 							) : unreadablePlugin ? (
 								<div className="px-4 py-3">
-									{reconciliation === "syncing" && <p role="status" className="text-sm text-muted-foreground">Preparing question…</p>}
-									{reconciliation === "ready" && <><p role="status" className="text-sm text-muted-foreground">Question unavailable</p><Button type="button" variant="ghost" disabled={!pluginReady} onClick={() => { void finishDictation().then(onPluginDismiss); }}>Dismiss question</Button></>}
+									{reconciliation === "syncing" && <p role="status" className="text-sm text-muted-foreground">{t("Preparing question…")}</p>}
+									{reconciliation === "ready" && <><p role="status" className="text-sm text-muted-foreground">{t("Question unavailable")}</p><Button type="button" variant="ghost" disabled={!pluginReady} onClick={() => { void finishDictation().then(onPluginDismiss); }}>{t("Dismiss question")}</Button></>}
 								</div>
 							) : pending ? (
 								<QuestionDock
@@ -3044,7 +3050,7 @@ export function DockOverlay({
 				    mid-question unmount), and widening past the floor fades it
 				    back in. */}
 				{(pending || pluginQuestion) && plan && (
-					<Hint label="Open the full plan" side="bottom">
+					<Hint label={t("Open the full plan")} side="bottom">
 <button
 						type="button"
 						data-testid="plan-marginalia"

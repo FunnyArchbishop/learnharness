@@ -1,14 +1,18 @@
 "use client";
 import { HostDialog } from "@/components/host-dialog";
 import type { CloseOutcome } from "@/components/interaction-layers";
+import { useT } from "@/components/i18n";
 import { Button } from "@/components/ui/button";
 
 export function ConnectionRow({ label, action, actionVariant, disabled, onAction, children, testid, actionTestid, labelClassName }: { label: string; action: string; actionVariant?: "outline" | "ghost"; disabled: boolean; onAction: () => void; children?: React.ReactNode; testid?: string; actionTestid?: string; labelClassName?: string }) {
+	const { t } = useT();
+	// The variant still keys off the English source action; only the rendered
+	// label goes through the translator.
 	const variant = actionVariant ?? (action === "Connect" ? "outline" : "ghost");
 	return <div className="flex flex-wrap items-center gap-3" data-testid={testid}>
 		<span className={labelClassName ?? "font-ui text-xs text-foreground"}>{label}</span>
 		{children}
-		<Button type="button" size="xs" variant={variant} className={`cursor-pointer disabled:cursor-not-allowed ${variant === "outline" ? "" : "text-muted-foreground hover:text-foreground"}`} data-testid={actionTestid} disabled={disabled} onClick={onAction}>{action}</Button>
+		<Button type="button" size="xs" variant={variant} className={`cursor-pointer disabled:cursor-not-allowed ${variant === "outline" ? "" : "text-muted-foreground hover:text-foreground"}`} data-testid={actionTestid} disabled={disabled} onClick={onAction}>{t(action)}</Button>
 	</div>;
 }
 

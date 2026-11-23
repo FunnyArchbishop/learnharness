@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono, Source_Sans_3 } from "next/font/google";
+import { cookies } from "next/headers";
 import { connection } from "next/server";
 import "katex/dist/katex.min.css";
 import "./globals.css";
+import { LocaleProvider } from "@/components/i18n";
+import { LOCALE_COOKIE, resolveLocale } from "@/src/i18n";
 import { AppShell, SidebarProvider } from "@/components/sidebar";
 import { ActivityProvider } from "@/components/activity-dock";
 import { ServerEventsProvider } from "@/components/server-events";
@@ -28,14 +31,18 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 	// prerendered route (settings) would bake the BUILD machine's record.
 	await connection();
 	const { appearance, theme, vars } = readThemeBoot();
+	// Interface language (i18n wave): the cookie is read here so the first
+	// frame already renders in the learner's language.
+	const locale = resolveLocale((await cookies()).get(LOCALE_COOKIE)?.value);
 	return (
 		<html
-			lang="en"
+			lang={locale === "zh" ? "zh-CN" : "en"}
 			className={`${theme.mode} ${ui.variable} ${prose.variable}`}
 			style={vars as React.CSSProperties}
 			suppressHydrationWarning
 		>
 			<body className="min-h-dvh antialiased">
+			<LocaleProvider initialLocale={locale}>
 			{/* The notification channel rides OUTSIDE everything: sidebar, dock,
 				 and pages all subscribe as the polls retire (push S3, 2026-10-02). */}
 			<ServerEventsProvider>
@@ -51,6 +58,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 			</ServerEventsProvider>
 			{/* Auto-update banner (Wave C): fixed card, Electron-only pushes. */}
 			<UpdateBanner />
+			</LocaleProvider>
 		</body>
 		</html>
 	);

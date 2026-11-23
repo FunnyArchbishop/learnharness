@@ -33,6 +33,7 @@ import { HostContentRootContext, HostRouteLifetimeProvider } from "@/components/
 import { isInteractionScopeEligible } from "@/components/plugin-input-focus";
 import { InteractionLayersProvider, useInteractionLayers, useOptionalInteractionLayers } from "@/components/interaction-layers";
 import { StartupMessage, type StartupMessageOffer } from "@/components/startup-message";
+import { useT } from "@/components/i18n";
 
 /**
  * Toggleable sidebar — NOT a modal drawer: no backdrop, no focus theft. It
@@ -218,6 +219,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
  *  no popping in either direction. */
 export function SidebarToggle() {
 	const { open, toggle } = useSidebar();
+	const { t } = useT();
 	return (
 		<span
 			className={cn(
@@ -225,7 +227,7 @@ export function SidebarToggle() {
 				open ? "w-0 -mr-3" : "w-9 mr-0 lh-closed-toggle",
 			)}
 		>
-			<Hint label="Open sidebar" action="toggle-sidebar">
+			<Hint label={t("Open sidebar")} action="toggle-sidebar">
 			<Button
 				variant="ghost"
 				size="icon"
@@ -261,22 +263,36 @@ function SessionStatus({ busy }: { busy: boolean }) {
 	return <BrailleSpinner />;
 }
 
+/** The translator seam, declared structurally so this module keeps the
+ *  shell's import law (components/** imports only "@/src/core"): same shape
+ *  as `useT().t` in components/i18n.tsx. */
+type Translator = (source: string, vars?: Record<string, string | number>) => string;
+
+/** English source pass-through for the pure helpers' direct callers (tests). */
+const SOURCE_TEXT: Translator = (source, vars) =>
+	vars
+		? source.replace(/\{\{(\w+)\}\}/g, (match, key: string) =>
+			Object.prototype.hasOwnProperty.call(vars, key) ? String(vars[key]) : match)
+		: source;
+
 /** Compact "how long ago": "just now", "5m ago", "3h ago", "2d ago",
  *  then a plain date. How long a session has been WAITING matters more
  *  than an absolute timestamp. Beyond a week the date renders ISO
  *  (YYYY-MM-DD, zero-padded) — the international standard: unambiguous
  *  in any locale and it sorts (owner, typography round 5; the old
  *  M/D/YYYY was the US convention. A user-locale setting can come later
- *  — trivial, a format function swap). Pure — exported for tests. */
-export function timeAgo(iso: string, now = new Date()): string {
+ *  — trivial, a format function swap). Pure — exported for tests. The
+ *  translator is an optional third argument so direct callers keep the
+ *  English source wording. */
+export function timeAgo(iso: string, now = new Date(), t: Translator = SOURCE_TEXT): string {
 	const ms = now.getTime() - new Date(iso).getTime();
-	if (ms < 60_000) return "just now";
+	if (ms < 60_000) return t("just now");
 	const min = Math.floor(ms / 60_000);
-	if (min < 60) return `${min}m ago`;
+	if (min < 60) return t("{{n}}m ago", { n: min });
 	const h = Math.floor(min / 60);
-	if (h < 24) return `${h}h ago`;
+	if (h < 24) return t("{{n}}h ago", { n: h });
 	const d = Math.floor(h / 24);
-	if (d < 7) return `${d}d ago`;
+	if (d < 7) return t("{{n}}d ago", { n: d });
 	const date = new Date(iso);
 	const mm = String(date.getMonth() + 1).padStart(2, "0");
 	const dd = String(date.getDate()).padStart(2, "0");
@@ -288,14 +304,14 @@ export function timeAgo(iso: string, now = new Date()): string {
  *  typography round 5): it informed no decision — clutter. messageCount
  *  still rides the API payload, so this is a one-line flip back if it's
  *  ever wanted. */
-function sessionMeta(chat: ChatListItem): string {
-	if (chat.compacting) return `Compacting context · ${timeAgo(chat.updatedAt)}`;
-	if (chat.pendingQuestion) return `Waiting for input · ${timeAgo(chat.updatedAt)}`;
+function sessionMeta(chat: ChatListItem, t: Translator): string {
+	if (chat.compacting) return t("Compacting context · {{ago}}", { ago: timeAgo(chat.updatedAt, undefined, t) });
+	if (chat.pendingQuestion) return t("Waiting for input · {{ago}}", { ago: timeAgo(chat.updatedAt, undefined, t) });
 	if ((chat.kind ?? "teach") === "practice" && chat.pendingProblem) {
-		return `Problem waiting · ${timeAgo(chat.updatedAt)}`;
+		return t("Problem waiting · {{ago}}", { ago: timeAgo(chat.updatedAt, undefined, t) });
 	}
-	if (chat.busy) return "Working…";
-	return timeAgo(chat.updatedAt);
+	if (chat.busy) return t("Working…");
+	return timeAgo(chat.updatedAt, undefined, t);
 }
 
 /**
@@ -324,6 +340,7 @@ export function SessionRow({
 	/** Right-click opens the context menu (wave 6: Rename / Delete). */
 	onContextMenu?: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }) {
+	const { t } = useT();
 	return (
 		<button
 			type="button"
@@ -342,7 +359,7 @@ export function SessionRow({
 			<SessionStatus busy={chat.busy || chat.compacting} />
 			<span className="min-w-0 flex-1">
 				<span className={cn("block truncate", sidebarNameFont(compact))}>{chat.title}</span>
-				{!compact && <span className="block text-xs text-muted-foreground">{sessionMeta(chat)}</span>}
+				{!compact && <span className="block text-xs text-muted-foreground">{sessionMeta(chat, t)}</span>}
 			</span>
 			{/* The dumbbell rides the FAR RIGHT (owner round 6, 2026-10-05) —
 			    was left of the name; right-aligned keeps the titles flush with
@@ -359,6 +376,7 @@ export function SessionRow({
  *  "replace", the header rename's rule), Enter/blur commits, Esc discards.
  *  The row retains the list's density mid-edit. */
 export function RenameRow({ chat, onCommit, onCancel, depth = 0, compact = false }: { chat: ChatListItem; onCommit: (next: string) => void; onCancel: () => void; depth?: number; compact?: boolean }) {
+	const { t } = useT();
 	const [draft, setDraft] = useState(chat.title);
 	const interactions = useOptionalInteractionLayers();
 	const inputRef = useRef<HTMLInputElement | null>(null);
@@ -402,7 +420,7 @@ export function RenameRow({ chat, onCommit, onCancel, depth = 0, compact = false
 					data-testid="session-rename-input"
 					className={cn("w-full min-w-0 truncate border-0 border-b border-border bg-transparent px-0 text-foreground outline-none", compact ? sidebarNameFont(true) : "lh-input")}
 				/>
-				{!compact && <span className="block truncate text-xs text-muted-foreground">{sessionMeta(chat)}</span>}
+				{!compact && <span className="block truncate text-xs text-muted-foreground">{sessionMeta(chat, t)}</span>}
 			</span>
 		</div>
 	);
@@ -415,6 +433,7 @@ export type SessionKindFilter = "teach" | "all" | "practice";
 const KIND_FILTER_KEY = "lh:session-kind-filter";
 
 function SessionsSidebar() {
+	const { t } = useT();
 	const { appearance: { compactSessionList } } = useAppearance();
 	const interactions = useInteractionLayers();
 	const { open, toggle } = useSidebar();
@@ -627,16 +646,16 @@ function SessionsSidebar() {
 	// it too). Esc discards; empty commit discards (the header's rules).
 	const commitRename = useCallback(async (id: string, next: string) => {
 		setRenamingId(null);
-		const t = next.trim();
-		if (t === "") return;
+		const title = next.trim();
+		if (title === "") return;
 		try {
 			const res = await fetch(`/api/chats/${id}`, {
 				method: "PUT",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ title: t }),
+				body: JSON.stringify({ title }),
 			});
 			if (!res.ok) throw new Error(`rename failed: ${res.status}`);
-			window.dispatchEvent(new CustomEvent("lh:chat-renamed", { detail: { id, title: t } }));
+			window.dispatchEvent(new CustomEvent("lh:chat-renamed", { detail: { id, title } }));
 		} catch (err) {
 			console.error("rename failed:", err); // keep the old title
 		}
@@ -737,8 +756,8 @@ function SessionsSidebar() {
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify(scope),
 			})
-				.then(async (res) => { if (!res.ok) reportFolderFailure(((await res.json().catch(() => ({}))) as { error?: string }).error ?? `Could not delete the folder (${res.status}).`); })
-				.catch(() => reportFolderFailure("Could not delete the folder — network error."));
+				.then(async (res) => { if (!res.ok) reportFolderFailure(((await res.json().catch(() => ({}))) as { error?: string }).error ?? t("Could not delete the folder ({{status}}).", { status: res.status })); })
+				.catch(() => reportFolderFailure(t("Could not delete the folder — network error.")));
 			return;
 		}
 		const copy = folderDeleteCopy({
@@ -841,7 +860,7 @@ function SessionsSidebar() {
 						// of the logo, carrying its real shortcut: ⌘G jumps to
 						// the graph view (keyboard-shortcuts routes it to "/",
 						// the same destination as this logo).
-						label="Home"
+						label={t("Home")}
 						action="jump-graph"
 						side="right"
 					>
@@ -853,7 +872,7 @@ function SessionsSidebar() {
 							<LhMark className="size-6" />
 						</Link>
 					</Hint>
-					<Hint label="Close sidebar" action="toggle-sidebar">
+					<Hint label={t("Close sidebar")} action="toggle-sidebar">
 						<Button
 							variant="ghost"
 							size="icon"
@@ -871,30 +890,30 @@ function SessionsSidebar() {
 					<button
 						type="button"
 						data-testid="new-session"
-						title="Teaching"
+						title={t("Teaching")}
 						onClick={() => void newSession()}
 						className="flex min-w-0 w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 					>
 						<PlusIcon className="size-3 shrink-0" />
-						<span className="min-w-0 truncate">Teaching</span>
-						<span className="sr-only">create a new teaching session</span>
+						<span className="min-w-0 truncate">{t("Teaching")}</span>
+						<span className="sr-only">{t("create a new teaching session")}</span>
 					</button>
 					<button
 						type="button"
 						data-testid="new-session-practice"
-						title="Practice"
+						title={t("Practice")}
 						onClick={() => router.push("/chat/new?mode=practice")}
 						className="flex min-w-0 w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 					>
 						<DumbbellIcon className="size-3 shrink-0" />
-						<span className="min-w-0 truncate">Practice</span>
-						<span className="sr-only">create a new practice session</span>
+						<span className="min-w-0 truncate">{t("Practice")}</span>
+						<span className="sr-only">{t("create a new practice session")}</span>
 					</button>
 				</PluginSidebarActions>
 
 				<div className="mx-3 mb-2 flex items-center gap-2">
-					<span className="text-xs uppercase tracking-widest text-muted-foreground/70">Sessions</span>
-					<Hint label="Search sessions" action="sessions-search" side="bottom">
+					<span className="text-xs uppercase tracking-widest text-muted-foreground/70">{t("Sessions")}</span>
+					<Hint label={t("Search sessions")} action="sessions-search" side="bottom">
 					<span className="relative flex-1">
 						<Input
 							ref={searchRef}
@@ -946,7 +965,7 @@ function SessionsSidebar() {
 									e.currentTarget.blur();
 								}
 							}}
-							placeholder="Search…"
+							placeholder={t("Search…")}
 							aria-label="Search sessions"
 							className="h-6 rounded-sm border-border bg-background pl-6 text-xs placeholder:text-muted-foreground/60"
 						/>
@@ -954,7 +973,7 @@ function SessionsSidebar() {
 					</span>
 					</Hint>
 					{organization && (
-						<Hint label="Add folder" side="bottom">
+						<Hint label={t("Add folder")} side="bottom">
 							<button
 								type="button"
 								aria-label="Add folder"
@@ -990,7 +1009,7 @@ function SessionsSidebar() {
 									: "text-muted-foreground hover:text-foreground",
 							)}
 						>
-							{f === "teach" ? "Teaching" : f === "all" ? "All" : "Practice"}
+							{t(f === "teach" ? "Teaching" : f === "all" ? "All" : "Practice")}
 						</button>
 					))}
 				</div>
@@ -999,7 +1018,7 @@ function SessionsSidebar() {
 				{folderFailure && (
 					<div role="alert" data-testid="sidebar-folder-error" className="mx-3 mt-2 flex items-start gap-2 text-xs text-error">
 						<span className="min-w-0 flex-1">{folderFailure}</span>
-						<button type="button" onClick={clearFolderFailure} className="shrink-0 text-muted-foreground hover:text-foreground">Dismiss</button>
+						<button type="button" onClick={clearFolderFailure} className="shrink-0 text-muted-foreground hover:text-foreground">{t("Dismiss")}</button>
 					</div>
 				)}
 
@@ -1016,10 +1035,10 @@ function SessionsSidebar() {
 						</div>
 					)}
 					{rows === null ? (
-						<div className="px-4 py-4 text-xs text-muted-foreground">Loading…</div>
+						<div className="px-4 py-4 text-xs text-muted-foreground">{t("Loading…")}</div>
 					) : rows.length === 0 && (
 						<div className="px-4 py-4 text-xs text-muted-foreground">
-							{query.trim() ? "No sessions match." : "No sessions yet."}
+							{query.trim() ? t("No sessions match.") : t("No sessions yet.")}
 						</div>
 					)}
 					{/* Empty space below the list: drop here to move out of all folders. */}
@@ -1041,7 +1060,7 @@ function SessionsSidebar() {
 					    New session — quiet, bottom-pinned, opens the centered
 					    dialog (also mod+, in the keyboard registry). */}
 					<div className="px-3 pb-3 pt-1">
-						<Hint label="Settings" action="open-settings" side="right">
+						<Hint label={t("Settings")} action="open-settings" side="right">
 							<button
 								type="button"
 								onClick={() => openSettings()}
@@ -1049,7 +1068,7 @@ function SessionsSidebar() {
 								className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-xs uppercase tracking-wider text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 							>
 								<SettingsIcon className="size-3" />
-								Settings
+								{t("Settings")}
 							</button>
 						</Hint>
 					</div>
@@ -1081,7 +1100,7 @@ function SessionsSidebar() {
 							}}
 							className="flex items-center rounded-lg px-2.5 py-1.5 text-left text-foreground transition-colors hover:bg-accent"
 						>
-							Rename
+							{t("Rename")}
 						</button>
 						{/* Export as Markdown (owner, release polish 2026-10-06): the
 					    session-markdown engine's user-facing debut — same-origin
@@ -1103,7 +1122,7 @@ function SessionsSidebar() {
 							}}
 							className="flex items-center rounded-lg px-2.5 py-1.5 text-left text-foreground transition-colors hover:bg-accent"
 						>
-							Export as Markdown…
+							{t("Export as Markdown…")}
 						</button>
 						<button
 							type="button"
@@ -1115,7 +1134,7 @@ function SessionsSidebar() {
 							}}
 							className="flex items-center rounded-lg px-2.5 py-1.5 text-left text-muted-foreground/80 transition-colors hover:bg-accent hover:text-foreground"
 						>
-							Delete…
+							{t("Delete…")}
 						</button>
 						<div className="my-0.5 border-t border-border/60" aria-hidden="true" />
 						<CoverageMenuBlock chatId={ctxChatId} />
@@ -1138,7 +1157,7 @@ function SessionsSidebar() {
 							onClick={() => { setRenamingFolderId(ctxFolderId); setCtxFolderId(null); }}
 							className="flex items-center rounded-lg px-2.5 py-1.5 text-left text-foreground transition-colors hover:bg-accent"
 						>
-							Rename
+							{t("Rename")}
 						</button>
 						<button
 							type="button"
@@ -1152,7 +1171,7 @@ function SessionsSidebar() {
 							}}
 							className="flex items-center rounded-lg px-2.5 py-1.5 text-left text-foreground transition-colors hover:bg-accent"
 						>
-							New subfolder
+							{t("New subfolder")}
 						</button>
 						<button
 							type="button"
@@ -1160,7 +1179,7 @@ function SessionsSidebar() {
 							onClick={() => deleteFolder(ctxFolderId)}
 							className="flex items-center rounded-lg px-2.5 py-1.5 text-left text-muted-foreground/80 transition-colors hover:bg-accent hover:text-foreground"
 						>
-							Delete
+							{t("Delete")}
 						</button>
 					</MenuShell>
 				)}

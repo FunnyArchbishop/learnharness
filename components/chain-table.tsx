@@ -77,6 +77,7 @@ import { DeleteSourceDialog } from "@/components/delete-source-dialog";
 import { LatexGlyph } from "@/components/latex-glyph";
 import { ToolContentResponse } from "@/components/ai-elements/message";
 import { TreeCell, TreeCheckbox, TreeDisclosure, TreeGuide, TreeHeader, TreeSelectionSpacer, TreeSeparator, treeBranchLayout, treeColumnLayout, treeRowLayout } from "./tree-presentation";
+import { useT } from "@/components/i18n";
 
 /** The sortable columns (owner ruling: all three — consistency). */
 export type ChainSortCol = "name" | "props" | "created";
@@ -167,6 +168,7 @@ export function ChainTableBody({
 	onSelect?: () => void;
 }) {
 	const [creatingFolder, setCreatingFolder] = useState(false);
+	const { t } = useT();
 	const tableRef = useRef<HTMLDivElement>(null);
 	const searchRef = useRef<HTMLInputElement>(null);
 	const navigation = useChainNavigation(tableRef, searchRef, keyboardActive);
@@ -319,7 +321,7 @@ export function ChainTableBody({
 			    law: later in the DOM). */}
 			<TopBar sidebarToggle={!pickerChrome}>
 				<span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
-					{chains.length} {chains.length === 1 ? "chain" : "chains"} · {nodes.length} {nodes.length === 1 ? "node" : "nodes"}
+					{t(chains.length === 1 ? "{{n}} chain" : "{{n}} chains", { n: chains.length })} · {t(nodes.length === 1 ? "{{n}} node" : "{{n}} nodes", { n: nodes.length })}
 				</span>
 				{onOrganizationChange && <button type="button" aria-label="Add folder" data-testid="add-source-folder"
 					onClick={() => setCreatingFolder(true)} className="lh-no-drag rounded-lg p-2 text-muted-foreground hover:bg-accent"><FolderPlusIcon className="size-4" /></button>}
@@ -330,7 +332,7 @@ export function ChainTableBody({
 						value={query}
 						data-testid="chain-table-search"
 						onChange={(e) => onQuery(e.target.value)}
-						placeholder="Search nodes…"
+						placeholder={t("Search nodes…")}
 						aria-label="Search nodes"
 						spellCheck={false}
 						className="lh-no-drag h-8 w-56 rounded-lg border bg-background pl-8 pr-3 text-xs outline-none placeholder:text-muted-foreground focus:border-ring"
@@ -364,7 +366,7 @@ export function ChainTableBody({
 						aria-sort={sort.col === "name" ? (sort.dir === 1 ? "ascending" : "descending") : "none"}
 						{...treeColumnLayout({ grow: true, align: "left", className: "flex items-center gap-1 transition-colors hover:text-foreground" })}
 					>
-						Name {dirIcon("name")}
+						{t("Name")} {dirIcon("name")}
 					</button>
 					<button
 						type="button"
@@ -373,7 +375,7 @@ export function ChainTableBody({
 						aria-sort={sort.col === "props" ? (sort.dir === 1 ? "ascending" : "descending") : "none"}
 						{...treeColumnLayout({ widthClassName: "w-14", align: "right", className: "flex items-center justify-end gap-1 transition-colors hover:text-foreground" })}
 					>
-						Props {dirIcon("props")}
+						{t("Props")} {dirIcon("props")}
 					</button>
 					<button
 						type="button"
@@ -382,7 +384,7 @@ export function ChainTableBody({
 						aria-sort={sort.col === "created" ? (sort.dir === 1 ? "ascending" : "descending") : "none"}
 						{...treeColumnLayout({ widthClassName: "w-20", align: "right", className: "flex items-center justify-end gap-1 transition-colors hover:text-foreground" })}
 					>
-						Created {dirIcon("created")}
+						{t("Created")} {dirIcon("created")}
 					</button>
 				</TreeHeader>
 
@@ -395,7 +397,7 @@ export function ChainTableBody({
 				</div>}
 				{groups.length === 0 && (directory?.organization.folders.length ?? 0) === 0 && (
 					<div data-testid="chain-table-nomatch" className="px-4 pt-3 text-xs text-muted-foreground">
-						No matching chains.
+						{t("No matching chains.")}
 					</div>
 				)}
 
@@ -427,7 +429,7 @@ export function ChainTableBody({
 								<TreeGuide selectionColumn depth={0} data-testid={`cluster-thread-${group.key}`} />
 							)}
 							{/* The cluster row: birth-session group header. */}
-							<SourceDragRow {...chainRow(["source", group.key], depth, open)} kind="source" id={group.key} name={group.label ?? "unlabeled"} enabled={Boolean(onOrganizationChange && group.birth)} {...treeRowLayout()}>
+							<SourceDragRow {...chainRow(["source", group.key], depth, open)} kind="source" id={group.key} name={group.label ?? t("unlabeled")} enabled={Boolean(onOrganizationChange && group.birth)} {...treeRowLayout()}>
 								<RowCheckbox
 									disabled={selectMode ? group.nodeIds.length === 0 : !directory?.sources.some((s) => s.id === group.birth)}
 									checked={selectMode ? selectedCount === group.nodeIds.length && group.nodeIds.length > 0 : group.birth !== null && selectedSources.has(group.birth)}
@@ -443,8 +445,8 @@ export function ChainTableBody({
 								</button>
 								{onOrganizationChange && group.birth && group.kind !== null
 									? <EditableSourceName name={group.label ?? ""} muted={empty} onSave={(name) => onOrganizationChange({ action: "rename-source", id: group.birth!, name })} />
-									: <span className={`min-w-0 flex-1 truncate text-sm font-medium${empty ? " text-muted-foreground/60" : ""}`}>{group.label ?? <span className="text-muted-foreground/60">unlabeled</span>}</span>}
-								{group.kind === "notes" && <span className="text-[11px] uppercase tracking-widest text-muted-foreground/60">notes</span>}
+									: <span className={`min-w-0 flex-1 truncate text-sm font-medium${empty ? " text-muted-foreground/60" : ""}`}>{group.label ?? <span className="text-muted-foreground/60">{t("unlabeled")}</span>}</span>}
+								{group.kind === "notes" && <span className="text-[11px] uppercase tracking-widest text-muted-foreground/60">{t("notes")}</span>}
 								<TreeCell widthClassName="w-14" align="right" className="text-xs tabular-nums text-muted-foreground">
 									{group.nodeIds.length}
 								</TreeCell>
@@ -584,8 +586,8 @@ export function ChainTableBody({
 						className="pointer-events-auto flex items-center gap-3 rounded-full border bg-card py-2 pl-4 pr-2 shadow-lg"
 					>
 						<span data-testid="chain-selected-summary" className="text-xs font-medium">
-							{selectMode ? <>{selection.size} {selection.size === 1 ? "node" : "nodes"} → {derived.length} {derived.length === 1 ? "chain" : "chains"}</>
-								: <>{selectedSources.size} {selectedSources.size === 1 ? "source" : "sources"}{fullySelectedFolders.size > 0 && ` · ${fullySelectedFolders.size} ${fullySelectedFolders.size === 1 ? "folder" : "folders"}`}</>}
+							{selectMode ? <>{t(selection.size === 1 ? "{{n}} node" : "{{n}} nodes", { n: selection.size })} → {t(derived.length === 1 ? "{{n}} chain" : "{{n}} chains", { n: derived.length })}</>
+								: <>{t(selectedSources.size === 1 ? "{{n}} source" : "{{n}} sources", { n: selectedSources.size })}{fullySelectedFolders.size > 0 && ` · ${t(fullySelectedFolders.size === 1 ? "{{n}} folder" : "{{n}} folders", { n: fullySelectedFolders.size })}`}</>}
 						</span>
 						<button
 							type="button"
@@ -593,7 +595,7 @@ export function ChainTableBody({
 							onClick={onClear}
 							className="rounded-full px-2.5 py-1 text-xs text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
 						>
-							Clear
+							{t("Clear")}
 						</button>
 						{selectMode ? (
 							<button
@@ -603,7 +605,7 @@ export function ChainTableBody({
 								aria-label={`Done picking — ${selection.size} ${selection.size === 1 ? "proposition" : "propositions"} selected`}
 								className="flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/80"
 							>
-								Done
+								{t("Done")}
 							</button>
 						) : (
 							<>
@@ -620,7 +622,7 @@ export function ChainTableBody({
 								className="flex items-center gap-1.5 rounded-full border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs font-medium text-destructive transition-colors hover:bg-destructive/20"
 							>
 								<Trash2Icon aria-hidden="true" className="size-3.5" />
-								Delete
+								{t("Delete")}
 							</button>
 							</>
 						)}
@@ -702,6 +704,7 @@ export function ChainTableOverlay({
 	onSelectionChange?: (next: ReadonlySet<string>) => void;
 }) {
 	const [query, setQuery] = useState("");
+	const { t } = useT();
 	const [sort, setSort] = useState<ChainSort>({ col: "name", dir: 1 });
 	const [internalSelection, setInternalSelection] = useState<ReadonlySet<string>>(() => new Set());
 	const [expandedClusters, setExpandedClusters] = useState<ReadonlySet<string>>(() => new Set());
@@ -732,11 +735,11 @@ export function ChainTableOverlay({
 		directoryRequest.current = request;
 		try {
 			const response = await fetch("/api/graph/sources", { cache: "no-store", signal: request.signal });
-			if (!response.ok) throw new Error("Could not read source organization.");
+			if (!response.ok) throw new Error(t("Could not read source organization."));
 			const body = await response.json() as SourceDirectory;
 			if (!request.signal.aborted && version === requestVersion.current) { setDirectory(body); setDirectoryPending(false); setDirectoryFailure(""); }
 		} catch (error) { if (!request.signal.aborted && version === requestVersion.current) setDirectoryFailure(error instanceof Error ? error.message : String(error)); }
-	}, []);
+	}, [t]);
 	useEffect(() => {
 		if (open) void readDirectory();
 		return () => {
@@ -758,7 +761,7 @@ export function ChainTableOverlay({
 			try {
 				const response = await fetch("/api/graph/sources", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(action) });
 				const body = await response.json();
-				if (!response.ok) throw new Error(typeof body.error === "string" ? body.error : "Could not save source organization.");
+				if (!response.ok) throw new Error(typeof body.error === "string" ? body.error : t("Could not save source organization."));
 				if (opening === directoryOpening.current) {
 					requestVersion.current++;
 					setDirectory(body as SourceDirectory); setDirectoryPending(false); setDirectoryFailure("");
@@ -873,7 +876,7 @@ export function ChainTableOverlay({
 							const response = await fetch("/api/graph/sources", { method: "DELETE", headers: { "Content-Type": "application/json" },
 								body: JSON.stringify({ sourceIds: deletion?.sources.map((s) => s.id) ?? [], folderIds: deletion?.folders.map((f) => f.id) ?? [], deleteSessions }) });
 							const body = await response.json();
-							if (!response.ok) throw new Error(typeof body.error === "string" ? body.error : "Could not delete sources.");
+							if (!response.ok) throw new Error(typeof body.error === "string" ? body.error : t("Could not delete sources."));
 							graphRevision = body.graphRevision;
 							if (opening === directoryOpening.current) {
 								requestVersion.current++; setDirectory(body as SourceDirectory); setDirectoryPending(false); setDirectoryFailure("");

@@ -45,8 +45,7 @@ import {
 } from "@/src/core";
 import { useAppearance } from "./appearance.tsx";
 import { SettingsSection } from "./controls.tsx";
-import { UpdateSettings } from "./update-settings.tsx";
-import { AgentSection, composePromptSwitch } from "./agent-section.tsx";
+import { UpdateSettings } from "./update-settings.tsx";import { AgentSection, composePromptSwitch } from "./agent-section.tsx";
 import type { ModelsSettings } from "@/src/core";
 import { MENU_CLOSE_EVENT, MENU_OPEN_EVENT } from "@/components/menu-shell";
 import { notifySettingsSaved } from "@/components/settings-signal";
@@ -54,6 +53,8 @@ import { KeysSection } from "./keys-section.tsx";
 import { Hint } from "@/components/ui/hint";
 import { AppearanceSection, GraphSection } from "./appearance-section.tsx";
 import { KeyboardSection } from "./keyboard-section.tsx";
+import { LanguageRow } from "./language-row.tsx";
+import { useT } from "@/components/i18n";
 import { PluginsSection } from "./plugins-section.tsx";
 import { PluginSettingsPage } from "./plugin-settings-page.tsx";
 import { usePlugins } from "@/components/plugins";
@@ -198,6 +199,7 @@ export function SettingsDialogBody({
 	const standaloneWriteOrder = useRef(newWriteOrder());
 	const writeOrder = inheritedWriteOrder ?? standaloneWriteOrder;
 	const { snapshot } = usePlugins();
+	const { t } = useT();
 	const [record, setRecord] = useState<UserSettings | null | undefined>(
 		undefined,
 	);
@@ -335,7 +337,7 @@ export function SettingsDialogBody({
 				const stored = reply?.settings;
 				if (!stored || typeof stored !== "object" || Array.isArray(stored) || stored.version !== 1 ||
 					!stored[section] || typeof stored[section] !== "object" || Array.isArray(stored[section])) {
-					if (ticket === writeOrder.current.issued) setError(`${section}: Could not confirm saved settings. Your input has been kept.`);
+					if (ticket === writeOrder.current.issued) setError(`${section}: ${t("Could not confirm saved settings. Your input has been kept.")}`);
 					return false;
 				}
 				if (ticket >= writeOrder.current.acknowledged) {
@@ -356,7 +358,7 @@ export function SettingsDialogBody({
 				authority.pendingWrites--;
 			}
 		},
-		[onAppearanceChange, writeOrder],
+		[onAppearanceChange, t, writeOrder],
 	);
 
 	async function deletePromptOverride(path: string, remove: () => Promise<boolean>) {
@@ -394,10 +396,10 @@ export function SettingsDialogBody({
 		>
 			{/* Header — the app's quiet CMU title language. */}
 			<header className="flex h-15 shrink-0 items-center gap-3 border-b border-border px-5">
-				<h2 className="font-title text-2xl tracking-tight">Settings</h2>
+				<h2 className="font-title text-2xl tracking-tight">{t("Settings")}</h2>
 				<Hint
 						// Esc closes through the shared interaction owner.
-						label="Close"
+						label={t("Close")}
 						binding="escape"
 						side="left"
 					>
@@ -444,7 +446,7 @@ export function SettingsDialogBody({
 								onClick={() => setActive(s.id)}
 							>
 								{s.icon && <s.icon aria-hidden="true" focusable="false" className="size-3.5 shrink-0" />}
-								<span className="min-w-0">{s.label}</span>
+								<span className="min-w-0">{t(s.label)}</span>
 							</button>
 							{s.id === "plugins" && <hr className="my-2 border-border" />}
 						</div>
@@ -473,20 +475,20 @@ export function SettingsDialogBody({
 					)}
 					{selected === "plugins" || selected === "core-plugins" ? <PluginsSection origin={selected === "core-plugins" ? "core" : "community"} onOpenSettings={pluginId => setActive(`plugin:${pluginId}`)} />
 						: activePlugin ? <PluginSettingsPage key={`${activePlugin.info.id}/${activePlugin.info.revision}`} plugin={activePlugin} />
-							: activePluginId !== null ? <p role="status" className="px-6 py-5 text-xs text-muted-foreground">Loading plugins…</p>
+							: activePluginId !== null ? <p role="status" className="px-6 py-5 text-xs text-muted-foreground">{t("Loading plugins…")}</p>
 								: record === undefined ? (
 						<p className="px-6 py-5 text-xs text-muted-foreground/70">
-							Loading settings…
+							{t("Loading settings…")}
 						</p>
 					) : record === null ? (
 						<p className="px-6 py-5 text-xs text-muted-foreground/70">
-							Settings could not be loaded — refresh to retry.
+							{t("Settings could not be loaded — refresh to retry.")}
 						</p>
 					) : (
 						<div>
 							{active === "general" && (
 								<SettingsSection
-									title="General"
+									title={t("General")}
 									testid="section-general"
 								>
 									<UpdateSettings
@@ -495,16 +497,17 @@ export function SettingsDialogBody({
 											void write("general", { ...record.general, autoUpdate: on })
 										}
 									/>
+									<LanguageRow />
 								</SettingsSection>
 							)}
 							{active === "keys" && (
-								<SettingsSection title="Providers" testid="section-keys">
+								<SettingsSection title={t("Providers")} testid="section-keys">
 									<KeysSection initialRow={initialRow ?? undefined} />
 								</SettingsSection>
 							)}
 							{active === "agent" && (
 								<SettingsSection
-									title="Agent"
+									title={t("Agent")}
 									testid="section-agent"
 								>
 									<AgentSection
@@ -528,7 +531,7 @@ export function SettingsDialogBody({
 							)}
 							{active === "appearance" && (
 								<SettingsSection
-									title="Appearance"
+									title={t("Appearance")}
 									testid="section-appearance"
 								>
 									<AppearanceSection
@@ -541,7 +544,7 @@ export function SettingsDialogBody({
 							)}
 							{active === "graph" && (
 								<SettingsSection
-									title="Graph"
+									title={t("Graph")}
 									testid="section-graph"
 								>
 									<GraphSection
@@ -554,8 +557,8 @@ export function SettingsDialogBody({
 							)}
 							{active === "keyboard" && (
 								<SettingsSection
-									title="Keyboard"
-									hint="Stored on this device"
+									title={t("Keyboard")}
+									hint={t("Stored on this device")}
 									testid="section-keyboard"
 								>
 									<KeyboardSection />

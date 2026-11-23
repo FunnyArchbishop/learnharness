@@ -9,6 +9,7 @@ import { useSidebar } from "@/components/sidebar";
 import { useInteractionLayers } from "@/components/interaction-layers";
 import { MenuShell } from "@/components/menu-shell";
 import { Hint } from "@/components/ui/hint";
+import { useT } from "@/components/i18n";
 
 export interface PlacedPluginAction {
 	key: string;
@@ -128,6 +129,7 @@ export function PluginSessionTopBarActions({ readContext, captureContext, refres
 
 export function PluginTopBarActions({ context, captureContext }: { context: Extract<PluginActionContext, { placement: "top-bar" }>; captureContext?: () => PluginActionContext | undefined }) {
 	const { snapshot } = usePlugins();
+	const { t } = useT();
 	const actions = placedPluginActions(snapshot.plugins, context);
 	const root = useRef<HTMLDivElement>(null);
 	const probes = useRef<HTMLDivElement>(null);
@@ -194,7 +196,7 @@ export function PluginTopBarActions({ context, captureContext }: { context: Extr
 			{actions.map(item => <span key={item.key} className={TOP_BUTTON}><ActionIcon action={item.action} /><span className="min-w-0 truncate">{item.action.name}</span></span>)}
 		</div>
 		{actions.slice(0, count).map(item => <ActionButton key={item.key} item={item} context={context} captureContext={captureContext} className={TOP_BUTTON} />)}
-		{excess.length > 0 && <Hint label="More plugin actions" side="bottom"><button ref={trigger} type="button" title="More plugin actions" aria-label="More plugin actions"
+		{excess.length > 0 && <Hint label={t("More plugin actions")} side="bottom"><button ref={trigger} type="button" title={t("More plugin actions")} aria-label="More plugin actions"
 			aria-haspopup="menu" aria-expanded={menuOpen} onClick={() => setMenuOpen(open => !open)}
 			className="flex size-9 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"><EllipsisIcon className="size-4" /></button></Hint>}
 		{menuOpen && excess.length > 0 && <MenuShell anchorRef={trigger} testid="plugin-top-bar-menu" onClose={(reason) => { setMenuOpen(false); if (reason === "escape") trigger.current?.focus(); return "closed"; }} preferredSide="down" align="right"

@@ -43,14 +43,16 @@ export default defineConfig([
 							target: "./components",
 							from: "./src",
 							// NOTE: the plugin resolves `except` relative to the zone's `from` path.
-							except: ["./core/index.ts"],
+							// i18n wave (2026-11-22): the UI localization layer is pure
+							// data + helpers, safe for the browser shell to import.
+							except: ["./core/index.ts", "./i18n/index.ts"],
 							message:
 								"Browser shell imports ONLY the pure core barrel: `from \"@/src/core\"` (architecture: docs/architecture.md).",
 						},
 						{
 							target: "./app",
 							from: "./src",
-							except: ["./core/index.ts", "./server/index.ts"],
+							except: ["./core/index.ts", "./server/index.ts", "./i18n/index.ts"],
 							message:
 								"app/ (transport + server components) imports ONLY the barrels: `@/src/core` and `@/src/server` (architecture: docs/architecture.md).",
 						},

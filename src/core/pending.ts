@@ -177,17 +177,17 @@ const ACTIVITY_LABELS: Record<string, string> = {
  *  shimmered label on the card itself, replacing the retired transcript
  *  bottom line. Question tools are excluded here: their input-streaming
  *  part renders in the dock, never a live card. */
-export function toolActivityLabel(tool: string): string {
-	if ((QUESTION_TOOLS as readonly string[]).includes(tool)) return "Writing a question…";
-	return ACTIVITY_LABELS[tool] ?? "Working…";
+export function toolActivityLabel(tool: string, t: (source: string) => string = source => source): string {
+	if ((QUESTION_TOOLS as readonly string[]).includes(tool)) return t("Writing a question…");
+	return t(ACTIVITY_LABELS[tool] ?? "Working…");
 }
 
-export function streamingToolActivity(messages: UIMessage[]): string | null {
+export function streamingToolActivity(messages: UIMessage[], t: (source: string) => string = source => source): string | null {
 	const last = messages.at(-1);
 	if (!last || last.role !== "assistant") return null;
 	for (const part of last.parts) {
 		if (isToolUIPart(part) && part.state === "input-streaming") {
-			return toolActivityLabel(part.type.slice("tool-".length));
+			return toolActivityLabel(part.type.slice("tool-".length), t);
 		}
 	}
 	return null;

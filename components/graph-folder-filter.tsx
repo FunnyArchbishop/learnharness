@@ -8,6 +8,7 @@ import { useInteractionLayers, type CloseReason } from "@/components/interaction
 import { INTERACTION_LAYER_Z_BASE } from "@/components/host-dialog";
 import { Hint } from "@/components/ui/hint";
 import { TreeCheckbox } from "@/components/tree-presentation";
+import { useT } from "@/components/i18n";
 import { cn } from "@/lib/utils";
 
 /**
@@ -48,6 +49,7 @@ export function GraphFolderFilterControl({ organization, listed, selected, onCha
 	onChange: (next: ReadonlySet<string>) => void;
 }) {
 	const [open, setOpen] = useState(false);
+	const { t } = useT();
 	const rootRef = useRef<HTMLDivElement>(null);
 	const panelRef = useRef<HTMLDivElement>(null);
 	const triggerRef = useRef<HTMLButtonElement>(null);
@@ -113,7 +115,7 @@ export function GraphFolderFilterControl({ organization, listed, selected, onCha
 	});
 	return (
 		<div ref={rootRef} className="lh-no-drag relative" onKeyDown={walk}>
-			<Hint label={activeCount > 0 ? "Graph filtered by folder" : "Show folders"} side="bottom">
+			<Hint label={activeCount > 0 ? t("Graph filtered by folder") : t("Show folders")} side="bottom">
 				<button
 					type="button"
 					ref={triggerRef}
@@ -142,19 +144,19 @@ export function GraphFolderFilterControl({ organization, listed, selected, onCha
 				<div ref={panelRef} role="group" aria-label="Show folders" tabIndex={-1} data-testid="graph-folder-filter-panel" style={{ zIndex: INTERACTION_LAYER_Z_BASE + popupLayer.order }}
 					className="absolute left-0 top-full mt-2 flex max-h-[60vh] w-64 flex-col rounded-xl border bg-card/85 p-2 shadow-lg backdrop-blur">
 					<div className="mb-1 flex items-center justify-between gap-2 px-2">
-						<span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Show folders</span>
+						<span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">{t("Show folders")}</span>
 						{activeCount > 0 && (
 							<button type="button" data-testid="graph-folder-filter-clear" data-folder-filter-control onClick={() => {
 								// This button disappears once cleared; keep focus inside the popup.
 								(panelRef.current?.querySelector<HTMLElement>("input[data-folder-filter-control]") ?? panelRef.current)?.focus();
 								onChange(new Set());
 							}}
-								className="text-[10px] text-muted-foreground transition-colors hover:text-foreground">Show all</button>
+								className="text-[10px] text-muted-foreground transition-colors hover:text-foreground">{t("Show all")}</button>
 						)}
 					</div>
 					<div className="overflow-y-auto">
 						{listed.size === 0
-							? <p className="px-2 py-1 text-xs text-muted-foreground">No folders contain graph material yet.</p>
+							? <p className="px-2 py-1 text-xs text-muted-foreground">{t("No folders contain graph material yet.")}</p>
 							: renderLevel(null, 0)}
 					</div>
 				</div>

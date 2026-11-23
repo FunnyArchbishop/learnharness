@@ -17,6 +17,7 @@ import { ChainTableOverlay } from "@/components/chain-table.tsx";
 import { ComposerActions, NodePickerControl } from "@/components/composer-actions";
 import { OPENING_PROMPT_FAILURE } from "@/components/opening-prompt";
 import { SessionStarter } from "@/components/start-session";
+import { useT } from "@/components/i18n";
 import type { ChatSettings, GraphSnapshot } from "@/src/core";
 
 /** The draft's pick set (owner round 10): the SAME shape the home pick
@@ -112,6 +113,7 @@ export function DraftShell({
 	overlay?: ReactNode;
 }) {
 	const controller = useOptionalInteractionLayers();
+	const { t } = useT();
 	const pathname = usePathname();
 	const bodyRef = useRef<HTMLDivElement>(null);
 	const surfaceTarget = usePageSurfaceBoundary({ active: pathname === "/chat/new", viewKey: "/chat/new", bodyRef });
@@ -126,7 +128,7 @@ export function DraftShell({
 		[]);
 	useFieldCycle(cycleComposer);
 	const dictation = useDictation({
-		append: (t) => onChange(joinDictation(text, t)),
+		append: (spoken) => onChange(joinDictation(text, spoken)),
 	});
 	// A LIVE dictation keeps the composer sendable ("nothing gets lost"
 	// round, owner 2026-10-01): the spoken text is deferred in the run's
@@ -178,11 +180,11 @@ export function DraftShell({
 						<Conversation className="h-full min-w-0 flex-1" initial="instant">
 							<ConversationContent className="min-h-full gap-0 p-0">
 								<ConversationEmptyState
-									title={mode === "practice" ? "New practice session" : "New session"}
+									title={t(mode === "practice" ? "New practice session" : "New session")}
 									description={
 										mode === "practice"
-											? "Pick nodes from your knowledge graph, describe what you want to practice, or bring your own problem."
-											: "The teacher will open by probing what you already know."
+											? t("Pick nodes from your knowledge graph, describe what you want to practice, or bring your own problem.")
+											: t("The teacher will open by probing what you already know.")
 									}
 								/>
 							</ConversationContent>
@@ -212,7 +214,7 @@ export function DraftShell({
 										// input (owner refinement round, 2026-09-24) — no lesson has
 										// started yet, so the composer must not read like one is in
 										// flight.
-										placeholder={mode === "practice" ? "What do you want to practice?" : "What do you want to learn?"}
+										placeholder={t(mode === "practice" ? "What do you want to practice?" : "What do you want to learn?")}
 									/>
 								</div>
 								<StatsBar
@@ -241,6 +243,7 @@ export function DraftShell({
 
 export function NewSession({ initialConfigured, mode = "teach" }: { initialConfigured: boolean; mode?: "teach" | "practice" }) {
 	const router = useRouter();
+	const { t } = useT();
 	const [text, setText] = useState("");
 	/* The draft MIRROR ("nothing gets lost" round, 2026-10-01): the shell's
 	 * finish-first send calls THIS send after the dictation flush — which
@@ -376,7 +379,7 @@ export function NewSession({ initialConfigured, mode = "teach" }: { initialConfi
 								onClick={() => setSetupOpen(true)}
 								className="rounded-sm border border-border bg-card px-3 py-1.5 font-ui text-xs text-foreground transition-colors hover:border-muted-foreground/50 hover:bg-accent cursor-pointer"
 							>
-								Set up your models
+								{t("Set up your models")}
 							</button>
 						)
 					)

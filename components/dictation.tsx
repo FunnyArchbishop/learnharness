@@ -8,6 +8,7 @@ import { deepgramListenUrl, type DictationLanguage } from "@/src/core";
 import { useDictationLanguage } from "@/components/dictation-preference";
 import { setDictationActive } from "@/components/dictation-state";
 import { dispatchFocusedPluginShortcut } from "@/components/plugin-input-focus";
+import { useT } from "@/components/i18n";
 export { isDictationActive } from "@/components/dictation-state";
 
 /**
@@ -346,6 +347,7 @@ export function useDictation({ append, destination = "primary", disabled = false
 	const primary = destination === "primary";
 	const owner = useRef(Symbol("dictation")).current;
 	const { getLanguage } = useDictationLanguage();
+	const { t } = useT();
 	const [phase, setPhaseState] = useState<DictationPhase>("idle");
 	const phaseRef = useRef<DictationPhase>("idle");
 	const setPhase = useCallback((next: DictationPhase) => {
@@ -411,7 +413,7 @@ export function useDictation({ append, destination = "primary", disabled = false
 		// A second cleanup (cancel/dispose) cannot turn an unfinished async
 		// append into a successful finish: that would send the old draft.
 		let failure: { error: unknown } | null = appendPendingRef.current
-			? { error: new DOMException("Dictation transcript delivery canceled", "AbortError") }
+			? { error: new DOMException(t("Dictation transcript delivery canceled"), "AbortError") }
 			: null;
 		appendPendingRef.current = false;
 		try {
@@ -442,7 +444,7 @@ export function useDictation({ append, destination = "primary", disabled = false
 			if (endGen !== genRef.current) return;
 			appendPendingRef.current = false;
 			appendFailureRef.current = failed;
-			if (failed) setError(failed.error instanceof Error ? failed.error.message : "Dictation transcript could not be applied");
+			if (failed) setError(failed.error instanceof Error ? failed.error.message : t("Dictation transcript could not be applied"));
 			if (recordingOwner === owner) {
 				recordingOwner = null;
 				recordingTarget = null;
@@ -463,7 +465,7 @@ export function useDictation({ append, destination = "primary", disabled = false
 			// Both branches consume the promise, including stop-without-finish.
 			void Promise.resolve(appended).then(() => complete(null), (error: unknown) => complete({ error }));
 		} else complete(failure);
-	}, [flush, owner, setPhase]);
+	}, [flush, owner, setPhase, t]);
 
 	/** Open the Deepgram socket and wire its messages. `gen` guards staleness. */
 	const openSocket = useCallback(
@@ -517,23 +519,23 @@ export function useDictation({ append, destination = "primary", disabled = false
 						})
 						.catch(() => {
 							if (gen === genRef.current) {
-								setError("Deepgram reconnect failed");
+								setError(t("Deepgram reconnect failed"));
 								cleanup();
 							}
 						});
 				} else {
-					setError(`Deepgram connection lost (${ev.code})`);
+					setError(t("Deepgram connection lost ({{code}})", { code: ev.code }));
 					cleanup();
 				}
 			});
 		},
-		[cleanup, setPhase],
+		[cleanup, setPhase, t],
 	);
 
 	const start = useCallback(async (destination?: DictationDestination) => {
 		if (disabledRef.current || phaseRef.current !== "idle") return;
 		if (recordingOwner !== null && recordingOwner !== owner) {
-			setError(DICTATION_ACTIVE_ELSEWHERE);
+			setError(t(DICTATION_ACTIVE_ELSEWHERE));
 			return;
 		}
 		const target = destination ?? { id: "main", append: primary ? questionTarget ?? appendRef.current : (text: string) => appendRef.current(text) };
@@ -554,7 +556,7 @@ export function useDictation({ append, destination = "primary", disabled = false
 			language = await getLanguage();
 		} catch (e) {
 			if (gen !== genRef.current) return;
-			setError(e instanceof Error ? e.message : "Dictation language unavailable");
+			setError(e instanceof Error ? e.message : t("Dictation language unavailable"));
 			cleanup();
 			return;
 		}
@@ -615,10 +617,10 @@ export function useDictation({ append, destination = "primary", disabled = false
 			if (gen !== genRef.current) return;
 			const msg =
 				e instanceof DOMException && (e.name === "NotAllowedError" || e.name === "SecurityError")
-					? "Microphone permission denied"
+					? t("Microphone permission denied")
 					: e instanceof Error
 						? e.message
-						: "mic unavailable";
+						: t("mic unavailable");
 			setError(msg);
 			cleanup();
 			return;
@@ -629,7 +631,7 @@ export function useDictation({ append, destination = "primary", disabled = false
 			token = await tokenPromise;
 		} catch (e) {
 			if (gen !== genRef.current) return;
-			setError(e instanceof Error ? e.message : "token unavailable");
+			setError(e instanceof Error ? t(e.message) : t("token unavailable"));
 			cleanup();
 			return;
 		}
@@ -637,7 +639,7 @@ export function useDictation({ append, destination = "primary", disabled = false
 		// Mitigation B: the handshake fires the moment the graph is live,
 		// overlapping any remaining token wait — mic-gated, never before it.
 		openSocket(gen, token, language);
-	}, [openSocket, cleanup, getLanguage, owner, primary, setPhase]);
+	}, [openSocket, cleanup, getLanguage, owner, primary, setPhase, t]);
 
 	const stop = useCallback(() => {
 		const gen = genRef.current;
@@ -759,11 +761,12 @@ export function useDictation({ append, destination = "primary", disabled = false
 export function DictationBar({ dictation, disabled = false }: { dictation: Dictation; disabled?: boolean }) {
 	const { phase, error, levelRef, toggle, active, clearError, blocked } = dictation;
 	const { open: openSettings } = useSettingsDialog();
+	const { t } = useT();
 	/** The keyless click (zero-keys wave, owner dictation trio): the errored
 	 *  idle button deep-links Settings → Keys → the Deepgram row and clears
 	 *  the error — the surface is clean when the user returns. Any other
 	 *  error keeps the old behavior (click = retry, which clears). */
-	const keyless = error === DICTATION_KEYLESS;
+	const keyless = error === DICTATION_KEYLESS || error === t(DICTATION_KEYLESS);
 	const [levels, setLevels] = useState<number[]>(() => new Array(METER_CELLS).fill(0));
 	/** Adaptive cell count (owner round 2): derived from the meter's
 	 *  measured width — narrow rows show fewer bars instead of
@@ -809,7 +812,7 @@ export function DictationBar({ dictation, disabled = false }: { dictation: Dicta
 		return (
 			<Hint
 				// The error line truncates in the button; its tooltip reveals it.
-				label={error ?? "Dictate"}
+				label={error ?? t("Dictate")}
 				action={error ? undefined : "toggle-dictation"}
 				side="top"
 			>
@@ -829,7 +832,7 @@ export function DictationBar({ dictation, disabled = false }: { dictation: Dicta
 					className="flex h-7 w-full items-center justify-center gap-1.5 rounded-md border border-border/50 bg-card/50 text-xs text-muted-foreground/70 shadow-lg backdrop-blur transition-colors hover:border-border hover:text-muted-foreground"
 				>
 					<MicIcon className="size-3.5" />
-					<span className="max-w-full truncate">{error ?? "Dictate"}</span>
+					<span className="max-w-full truncate">{error ?? t("Dictate")}</span>
 				</button>
 			</Hint>
 		);
@@ -837,7 +840,7 @@ export function DictationBar({ dictation, disabled = false }: { dictation: Dicta
 
 	return (
 		<div className="flex w-full min-w-0 items-center gap-2" data-testid="dictation-bar">
-			<Hint label="Stop dictation (Esc)" side="top">
+			<Hint label={t("Stop dictation (Esc)")} side="top">
 				<button
 					type="button"
 					onClick={toggle}
@@ -847,7 +850,7 @@ export function DictationBar({ dictation, disabled = false }: { dictation: Dicta
 					className="flex h-7 shrink-0 items-center gap-1.5 rounded-md bg-destructive/10 px-2 text-xs font-medium text-destructive transition-colors hover:bg-destructive/20"
 				>
 					{phase === "stopping" ? <Loader2Icon className="size-3.5 animate-spin" /> : <MicIcon className="size-3.5" />}
-					Stop
+					{t("Stop")}
 				</button>
 			</Hint>
 			<span className="size-1.5 shrink-0 animate-pulse rounded-full bg-destructive" aria-hidden />

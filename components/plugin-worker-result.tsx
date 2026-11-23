@@ -5,6 +5,7 @@ import { CheckIcon, CircleX, XIcon } from "lucide-react";
 import { MessageResponse } from "@/components/ai-elements/message";
 import { WorkerResultDetails } from "@/components/artifacts/worker-result-presentation";
 import { Hint } from "@/components/ui/hint";
+import { useT } from "@/components/i18n";
 
 /** Host presentation shared by persisted worker results and the plugin widget.
  * Rich bodies may replace the text, never the host identity/status. */
@@ -15,13 +16,15 @@ export function PluginWorkerResultSurface({ label, status, text, children, prese
 	children?: ReactNode;
 	presentation?: "collapsed" | "card" | "plain";
 }) {
+	const { t } = useT();
 	const icon = status === "succeeded" ? <CheckIcon aria-hidden="true" className="size-3.5" />
 		: status === "failed" ? <XIcon aria-hidden="true" className="size-3.5 text-error" />
 			: <CircleX aria-hidden="true" className="size-3.5" />;
-	const tooltip = `${label}: ${status}`;
+	const statusLabel = t(status);
+	const tooltip = t("{{label}}: {{status}}", { label, status: statusLabel });
 	const heading = <>
 		<span className="font-medium tracking-wide text-foreground">{label}</span>
-		<span className="sr-only"> {status}</span>
+		<span className="sr-only"> {statusLabel}</span>
 	</>;
 	const body = children ?? <div className="text-sm [&_p:first-child]:mt-0 [&_p:last-child]:mb-0"><MessageResponse>{text}</MessageResponse></div>;
 	if (presentation === "card") return (

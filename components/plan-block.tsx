@@ -21,6 +21,7 @@ import type { PlanBlockData, PlanNodeStatus, PlanTree } from "@/src/core";
 import { derivedNodeStatus, derivePlanStatuses } from "@/src/core";
 import { Hint } from "@/components/ui/hint";
 import { useAppearance } from "@/components/settings/appearance";
+import { useT } from "@/components/i18n";
 import { InteractionLayerOwner, useInteractionLayer } from "./interaction-layers";
 
 /**
@@ -513,13 +514,14 @@ export function PlanDiagram({
  * future DAG window).
  */
 export function PlanBlock({ data, onOpen }: { data: PlanBlockData; onOpen: () => void }) {
+	const { t } = useT();
 	const markerId = useId().replace(/[^a-zA-Z0-9-]/g, "");
 	const statusMap = useMemo(() => new Map(data.nodes.map((n) => [n.id, n.status] as const)), [data]);
 	const statusOf = (id: string): PlanNodeStatus => statusMap.get(id) ?? "upcoming";
 	const plan = usePlanLayout(data);
 	const { appearance } = useAppearance();
 	return (
-		<Hint label="Open the full plan" side="bottom">
+		<Hint label={t("Open the full plan")} side="bottom">
 <button
 			type="button"
 			data-testid="plan-block-full"
@@ -590,6 +592,7 @@ const POPUP_PAD = GLOW_REACH;
  * through while the focus owns the session area.
  */
 export function PlanPopup({ messages, onClose }: { messages: readonly PopupMessage[]; onClose: () => void }) {
+	const { t } = useT();
 	const tree = useMemo(() => latestTree(messages), [messages]);
 	const statuses = useMemo(
 		() => (tree ? derivePlanStatuses(tree, messages as Parameters<typeof derivePlanStatuses>[1]) : null),
@@ -727,9 +730,9 @@ export function PlanPopup({ messages, onClose }: { messages: readonly PopupMessa
 			}}
 		>
 			<div className="mb-2 flex items-center gap-2">
-				<span className="text-sm font-medium">The plan</span>
-				<span className="text-xs text-muted-foreground">live — statuses derive from your check outcomes</span>
-				<Hint label="Close" binding="escape" side="left">
+				<span className="text-sm font-medium">{t("The plan")}</span>
+				<span className="text-xs text-muted-foreground">{t("live — statuses derive from your check outcomes")}</span>
+				<Hint label={t("Close")} binding="escape" side="left">
 <button
 					type="button"
 					onClick={onClose}
@@ -783,9 +786,9 @@ export function PlanPopup({ messages, onClose }: { messages: readonly PopupMessa
 						</div>
 						<PlanLayoutProbe probe={plan.probe} />
 						<div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between p-2">
-							<span className="text-xs text-muted-foreground/60">Drag to pan · scroll to zoom</span>
+							<span className="text-xs text-muted-foreground/60">{t("Drag to pan · scroll to zoom")}</span>
 							<div className="flex gap-1">
-								<Hint label="Zoom out" side="bottom">
+								<Hint label={t("Zoom out")} side="bottom">
 <button
 									type="button"
 									aria-label="Zoom out"
@@ -795,7 +798,7 @@ export function PlanPopup({ messages, onClose }: { messages: readonly PopupMessa
 									<MinusIcon className="size-3.5" />
 								</button>
 </Hint>
-								<Hint label="Fit plan to screen" side="bottom">
+								<Hint label={t("Fit plan to screen")} side="bottom">
 <button
 									type="button"
 									aria-label="Fit plan to screen"
@@ -806,7 +809,7 @@ export function PlanPopup({ messages, onClose }: { messages: readonly PopupMessa
 									<MaximizeIcon className="size-3.5" />
 								</button>
 </Hint>
-								<Hint label="Zoom in" side="bottom">
+								<Hint label={t("Zoom in")} side="bottom">
 <button
 									type="button"
 									aria-label="Zoom in"
@@ -821,7 +824,7 @@ export function PlanPopup({ messages, onClose }: { messages: readonly PopupMessa
 					</>
 				) : (
 					<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-						No plan in this session yet.
+						{t("No plan in this session yet.")}
 					</div>
 				)}
 			</div>

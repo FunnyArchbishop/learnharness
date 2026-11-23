@@ -8,6 +8,7 @@ import { HostDialog } from "@/components/host-dialog";
 import { useInteractionLayers, type CloseOutcome, type OpeningLease } from "@/components/interaction-layers";
 import { MarkdownDisplayOnlyContext, mdComponents } from "@/components/md-blocks";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/components/i18n";
 
 export interface StartupMessageOffer {
 	message: { id: string; title: string; publishedAt: string; bodyMarkdown: string };
@@ -44,6 +45,7 @@ export function StartupMessageBody({ markdown }: { markdown: string }) {
 
 export function StartupMessage() {
 	const controller = useInteractionLayers();
+	const { t } = useT();
 	const headingId = useId();
 	const layerId = `startup-message:${headingId}`;
 	const request = useRef<Promise<StartupMessageOffer | null> | null>(null);
@@ -119,7 +121,7 @@ export function StartupMessage() {
 		</header>
 		<div className="min-h-0 overflow-y-auto break-words p-5"><StartupMessageBody markdown={open.message.bodyMarkdown} /></div>
 		<footer className="flex shrink-0 justify-end border-t border-border px-5 py-3">
-			<Button type="button" variant="outline" size="sm" className="font-ui" onClick={dismiss}>Close</Button>
+			<Button type="button" variant="outline" size="sm" className="font-ui" onClick={dismiss}>{t("Close")}</Button>
 		</footer>
 	</HostDialog>;
 }

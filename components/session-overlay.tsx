@@ -9,6 +9,7 @@ import { useAppearance } from "@/components/settings/appearance";
 import { MermaidError } from "@/components/mermaid-error";
 import { Hint } from "@/components/ui/hint";
 import { SvgImage } from "@/components/artifacts/svg-image";
+import { useT } from "@/components/i18n";
 import { InteractionLayerOwner, useInteractionLayer } from "./interaction-layers";
 
 /**
@@ -96,6 +97,7 @@ export function MermaidOverlay({
 	onClose: () => void;
 }) {
 	// ── chart render (own instance, own ids); figure mode uses the raw svg ──
+	const { t } = useT();
 	const [svg, setSvg] = useState<string | null>(rawSvg ?? null);
 	const [error, setError] = useState<string | null>(null);
 	const [attempt, setAttempt] = useState(0);
@@ -145,6 +147,9 @@ export function MermaidOverlay({
 	}, []);
 
 	const box = useMemo(() => image ? { w: image.width, h: image.height } : svg ? chartSize(svg) : { w: 0, h: 0 }, [svg, image]);
+	// The English source stays here: these two also feed aria-labels (which
+	// the render tests quote verbatim); the visible label and the tooltip
+	// render through t() at their own call sites.
 	const mediaName = image ? "Image" : "Diagram";
 	const fitLabel = image ? "Fit image to view" : "Fit diagram to view";
 	const fitZoom = useMemo(() => fitZoomFor(box, size), [box, size]);
@@ -235,9 +240,9 @@ export function MermaidOverlay({
 			aria-label={`${mediaName} focus`}
 		>
 			<div className="mb-2 flex items-center gap-2">
-				<span className="text-sm font-medium">{mediaName}</span>
-				<span className="text-xs text-muted-foreground">from this lesson</span>
-				<Hint label="Close" binding="escape" side="left">
+				<span className="text-sm font-medium">{t(mediaName)}</span>
+				<span className="text-xs text-muted-foreground">{t("from this lesson")}</span>
+				<Hint label={t("Close")} binding="escape" side="left">
 <button
 					type="button"
 					onClick={onClose}
@@ -307,9 +312,9 @@ export function MermaidOverlay({
 							)}
 						</div>
 						<div className="pointer-events-none absolute inset-x-0 bottom-0 flex items-end justify-between p-2">
-							<span className="text-xs text-muted-foreground/60">Drag to pan · scroll to zoom</span>
+							<span className="text-xs text-muted-foreground/60">{t("Drag to pan · scroll to zoom")}</span>
 							<div className="flex gap-1">
-								<Hint label="Zoom out" side="bottom">
+								<Hint label={t("Zoom out")} side="bottom">
 <button
 									type="button"
 									aria-label="Zoom out"
@@ -319,7 +324,7 @@ export function MermaidOverlay({
 									<MinusIcon className="size-3.5" />
 								</button>
 </Hint>
-								<Hint label={fitLabel} side="bottom">
+								<Hint label={t(fitLabel)} side="bottom">
 <button
 									type="button"
 									aria-label={fitLabel}
@@ -329,7 +334,7 @@ export function MermaidOverlay({
 									<MaximizeIcon className="size-3.5" />
 								</button>
 </Hint>
-								<Hint label="Zoom in" side="bottom">
+								<Hint label={t("Zoom in")} side="bottom">
 <button
 									type="button"
 									aria-label="Zoom in"
@@ -345,7 +350,7 @@ export function MermaidOverlay({
 				) : (
 					<div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
 						<span className="inline-block size-4 animate-spin rounded-full border border-current border-b-2" />
-						Rendering diagram…
+						{t("Rendering diagram…")}
 					</div>
 				)}
 			</div>

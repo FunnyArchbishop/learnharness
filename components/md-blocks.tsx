@@ -43,6 +43,7 @@ import { MermaidError } from "@/components/mermaid-error";
 import { blurAfterPointerClick } from "@/components/focus-hygiene";
 import { chartSize, useSessionMermaid } from "@/components/session-overlay";
 import { Hint } from "@/components/ui/hint";
+import { useT } from "@/components/i18n";
 import { BUILTIN_MERMAID_LANGUAGE, PluginCodeBlock } from "@/components/plugin-renderers";
 
 /** Local rendering profile for host-mounted, display-only Markdown. Ordinary
@@ -146,6 +147,7 @@ export function codeSource(children: ReactNode): string {
  *  doomed parse. */
 function MermaidInline({ chart }: { chart: string }) {
 	const displayOnly = useContext(MarkdownDisplayOnlyContext);
+	const { t } = useT();
 	const [svg, setSvg] = useState<string | null>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [attempt, setAttempt] = useState(0);
@@ -212,7 +214,7 @@ function MermaidInline({ chart }: { chart: string }) {
 					<Hint
 					// Full-screen overlay copy (tooltip wave) — "session view" was
 					// internal direction-speak for the same thing.
-					label="Open full-screen"
+					label={t("Open full-screen")}
 					side="bottom"
 				>
 <button

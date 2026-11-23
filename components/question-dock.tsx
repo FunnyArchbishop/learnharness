@@ -4,6 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, u
 import type { ViewReaderRef, NativeQuestionViewState } from "./session-view-readers";
 import { ArrowDownIcon, ChevronRightIcon, PlayIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useT } from "@/components/i18n";
 import { finishDictation, isDictationActive, joinDictation, useDictationTarget } from "@/components/dictation";
 import { useEnterSubmits } from "@/components/enter-submits";
 import { useOptionalInteractionLayers } from "./interaction-layers";
@@ -42,6 +43,7 @@ import {
 	type Phase3,
 } from "@/src/core";
 import type { PrepareBuiltinSubmission } from "./plugin-submission-adapters";
+import type { Translator } from "@/src/i18n";
 import { CONFIDENCE_COLORS, confidenceRailStyle } from "@/components/confidence-rail";
 import {
 	ANSWER_COLUMN_FRAME,
@@ -84,12 +86,12 @@ const QC_CONFIDENCE_TRACK = "relative h-4 min-w-0 flex-1";
 const QC_CONFIDENCE_VALUE = "w-[4ch] shrink-0 text-center font-mono text-sm tabular-nums";
 
 /** The question card's label: the tool's own name for probe-phase calls. */
-export function questionCardLabel(tool: string | undefined, kind: string, questionType: string | undefined): string {
-	if (tool === "probe") return "Probe";
-	if (tool === "recall") return "Recall";
-	if (kind === "quiz") return questionType === "predict" ? "Prediction" : "Check";
-	if (kind === "explain") return "Explain";
-	return "Question";
+export function questionCardLabel(t: Translator, tool: string | undefined, kind: string, questionType: string | undefined): string {
+	if (tool === "probe") return t("Probe");
+	if (tool === "recall") return t("Recall");
+	if (kind === "quiz") return questionType === "predict" ? t("Prediction") : t("Check");
+	if (kind === "explain") return t("Explain");
+	return t("Question");
 }
 
 /** What an answered card knows of the question it answered. Rendered
@@ -244,6 +246,7 @@ export function QuestionDock({
 	layoutRequest,
 	onLayout,
 }: QuestionDockProps) {
+	const { t } = useT();
 	// The probe-phase names (owner, 2026-10-09) canonicalize onto their
 	// teach twins for every dock concern — parse dispatch, labels, kinds:
 	// the probe quiz ("probe") is quiz-shaped, the probe free-recall
@@ -253,7 +256,7 @@ export function QuestionDock({
 	// The chip's display name carries the tool's OWN name (owner
 	// 2026-10-09): probe-phase questions label Probe/Recall in the
 	// composer; teach tools keep the standing labels.
-	const toolLabel = toolName === "probe" ? "Probe" : toolName === "recall" ? "Recall" : undefined;
+	const toolLabel = toolName === "probe" ? t("Probe") : toolName === "recall" ? t("Recall") : undefined;
 	// Parse, don't cast (src/core/tool-parts.ts): the model authored this
 	// input, and only the schema the tool declared vouches for its shape.
 	// The dock mounts on input-available parts (already validated at the
@@ -277,7 +280,7 @@ export function QuestionDock({
 					label={
 						(canonical === "quiz" || canonical === "explain") &&
 						normalizeQuizType((parsed as { type?: unknown }).type) === "predict"
-							? "Prediction"
+							? t("Prediction")
 							: undefined
 					}
 				/>
@@ -332,6 +335,7 @@ export function QuestionDockBar({
 	 *  label Probe/Recall — the phase boundary visible in the composer. */
 	toolLabel?: string;
 }) {
+	const { t } = useT();
 	if (variant === "reveal") {
 		return (
 			<button
@@ -344,13 +348,13 @@ export function QuestionDockBar({
 					<PlayIcon className="size-3.5" />
 				</span>
 				<span className="min-w-0 flex-1">
-					<span className="block text-sm font-medium">Check your understanding</span>
+					<span className="block text-sm font-medium">{t("Check your understanding")}</span>
 					<span className="block text-xs text-muted-foreground">
 						<QuestionPreview>{question}</QuestionPreview>
 					</span>
 				</span>
 				<span className="flex shrink-0 items-center gap-1 text-xs font-medium text-primary">
-					Open <ChevronRightIcon className="size-3.5" />
+					{t("Open")} <ChevronRightIcon className="size-3.5" />
 				</span>
 			</button>
 		);
@@ -365,13 +369,13 @@ export function QuestionDockBar({
 			<span className="shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">
 				{label ??
 							toolLabel ??
-							(toolName === "quiz" ? "Check" : toolName === "explain" ? "Explain" : "Question")}
+							(toolName === "quiz" ? t("Check") : toolName === "explain" ? t("Explain") : t("Question"))}
 			</span>
 			<span className="min-w-0 flex-1 text-muted-foreground">
 				<QuestionPreview>{question}</QuestionPreview>
 			</span>
 			<span className="flex shrink-0 items-center gap-1 text-xs font-medium">
-				Answer <ArrowDownIcon className="size-3.5" />
+				{t("Answer")} <ArrowDownIcon className="size-3.5" />
 			</span>
 		</button>
 	);
@@ -398,6 +402,7 @@ function QuestionDockForm({
 	layoutRequest,
 	onLayout,
 }: Omit<QuestionDockProps, "expanded" | "onExpand" | "reveal">) {
+	const { t } = useT();
 	const kind = toolQuestionKind(toolName);
 	const controller = useOptionalInteractionLayers();
 	const rootRef = useRef<HTMLDivElement>(null);
@@ -815,7 +820,7 @@ function QuestionDockForm({
 							sel.dontKnow ? "text-muted-foreground/50" : "text-muted-foreground",
 						)}
 					>
-						Confidence
+						{t("Confidence")}
 					</span>
 					<div
 						className={cn(QC_CONFIDENCE_TRACK, sel.dontKnow && "opacity-40")}
@@ -846,7 +851,7 @@ function QuestionDockForm({
 							disabled={sel.dontKnow}
 							aria-label="Confidence — the probability your selected answer is correct"
 							aria-valuetext={`${CONFIDENCE_STOPS[confIdx]} percent`}
-							title="The probability your selected answer is correct — 50% is a coin flip. Adjust with ←/→."
+							title={t("The probability your selected answer is correct — 50% is a coin flip. Adjust with ←/→.")}
 							data-testid="confidence-slider"
 							onChange={(e) => {
 								// Snap to the nearest stop; the rendered VALUE is the stop's own
@@ -894,8 +899,8 @@ function QuestionDockForm({
 	const questionPart = (
 		<div ref={questionPartRef} data-question-part="">
 			<div className={QC_LABEL}>
-				{questionCardLabel(toolName, kind, qd.questionType)}
-				{qd.mode === "multi-select" && " · select all that apply"}
+				{questionCardLabel(t, toolName, kind, qd.questionType)}
+				{qd.mode === "multi-select" && t(" · select all that apply")}
 			</div>
 			<div className={QC_QUESTION}>
 				<ToolContentResponse>{qd.question}</ToolContentResponse>
@@ -989,7 +994,7 @@ function QuestionDockForm({
 						>
 							{sel.dontKnow && <span className="size-1.5 rounded-full bg-current" />}
 						</span>
-						<span>I don't know</span>
+						<span>{t("I don't know")}</span>
 					</button>
 				)}
 
@@ -1058,7 +1063,7 @@ function QuestionDockForm({
 										submit();
 									}
 							}}
-							placeholder={OTHER_PLACEHOLDER}
+							placeholder={t("Type your own answer…")}
 							className={QC_OTHER_INPUT}
 							onClick={(e) => e.stopPropagation()}
 						/>
@@ -1125,7 +1130,7 @@ function QuestionDockForm({
 					className="rounded-[10px] border border-border/70 bg-background/60 transition-colors focus-within:border-primary/50"
 				>
 					<div className="px-2.5 pt-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-						{qd.mode === "text" ? "Your answer" : "YOUR THINKING"}
+						{qd.mode === "text" ? t("Your answer") : t("YOUR THINKING")}
 					</div>
 					{qd.mode === "text" ? (
 						<PathInput
@@ -1153,7 +1158,7 @@ function QuestionDockForm({
 									submit();
 								}
 							}}
-							placeholder="Type your answer…"
+							placeholder={t("Type your answer…")}
 							className="field-sizing-content lh-input max-h-48 min-h-10 w-full resize-none bg-transparent px-2.5 py-2 outline-none placeholder:text-muted-foreground"
 						/>
 					) : (
@@ -1184,7 +1189,7 @@ function QuestionDockForm({
 									submit();
 								}
 							}}
-							placeholder="Why this answer? Whatever comes to mind."
+							placeholder={t("Why this answer? Whatever comes to mind.")}
 							className={cn(
 								"field-sizing-content lh-input max-h-48 w-full resize-none bg-transparent px-2.5 py-2 outline-none placeholder:text-muted-foreground/70",
 								// Phase-scaled prominence: teaching invites depth,
@@ -1195,14 +1200,14 @@ function QuestionDockForm({
 					)}
 					<div className="flex items-center justify-between gap-2 p-1">
 						<span aria-hidden className="pl-1.5 text-xs text-muted-foreground">
-								{compactionRunning ? "compacting session…" : "↵ submits · ⇧↵ newline"}
+								{compactionRunning ? t("compacting session…") : t("↵ submits · ⇧↵ newline")}
 						</span>
 						<Button
 							type="submit"
 							disabled={!canSubmit || compactionRunning || preparing}
 							className="ml-auto h-9 rounded-[6px] px-3.5 text-sm font-medium"
 						>
-							Submit answer
+							{t("Submit answer")}
 						</Button>
 					</div>
 				</div>

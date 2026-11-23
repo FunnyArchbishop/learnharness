@@ -7,6 +7,8 @@ import { InvertDiscIcon } from "@/components/artifacts/invert-disc";
 import { ChatActionsContext } from "@/components/chat";
 import { downloadFile, slugFilename } from "@/components/artifacts/download";
 import { DispatchCard } from "@/components/artifacts/dispatch-card";
+import { useT } from "@/components/i18n";
+import type { Translator } from "@/src/i18n";
 import type { ArtifactPartProps, DemoResult } from "@/src/core";
 
 /**
@@ -62,8 +64,9 @@ export const INITIAL_DEMO_BRIDGE_STATE: DemoBridgeState = { height: null, error:
 const MIN_HEIGHT = 80;
 const MAX_HEIGHT = 2400;
 
-/** Pure reducer over incoming postMessage data (contracts.ts DemoBridgeMessage). */
-export function reduceDemoBridgeState(state: DemoBridgeState, data: unknown): DemoBridgeState {
+/** Pure reducer over incoming postMessage data (contracts.ts DemoBridgeMessage).
+ *  `t` is optional so the reducer stays usable (and testable) without a locale. */
+export function reduceDemoBridgeState(state: DemoBridgeState, data: unknown, t?: Translator): DemoBridgeState {
 	if (typeof data !== "object" || data === null) return state;
 	const message = data as { type?: unknown; height?: unknown; message?: unknown };
 	if (message.type === "demo-resize") {
@@ -72,7 +75,9 @@ export function reduceDemoBridgeState(state: DemoBridgeState, data: unknown): De
 		return height === state.height ? state : { ...state, height };
 	}
 	if (message.type === "demo-error") {
-		const text = typeof message.message === "string" && message.message.trim() ? message.message : "unknown error";
+		const text = typeof message.message === "string" && message.message.trim()
+			? message.message
+			: t ? t("unknown error") : "unknown error";
 		return text === state.error ? state : { ...state, error: text };
 	}
 	return state;
@@ -101,10 +106,11 @@ export function DemoOutputCard({
 	initialInverted?: boolean;
 }) {
 	const result = output as DemoResult | undefined;
+	const { t } = useT();
 	if (!result || typeof result.html !== "string" || typeof result.title !== "string") {
 		return (
 			<div className="rounded-xl border bg-card p-4 text-sm text-muted-foreground">
-				Demo completed, but the result could not be displayed.
+				{t("Demo completed, but the result could not be displayed.")}
 			</div>
 		);
 	}
@@ -113,10 +119,10 @@ export function DemoOutputCard({
 		return (
 			<div className="rounded-xl border bg-card p-4 text-card-foreground" data-testid="demo-card-failed">
 				<div className="flex items-center gap-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-					Interactive demo
-					<span className="rounded bg-error/15 px-1.5 py-0.5 text-error">failed</span>
+					{t("Interactive demo")}
+					<span className="rounded bg-error/15 px-1.5 py-0.5 text-error">{t("failed")}</span>
 				</div>
-				<p className="mt-2 text-sm text-muted-foreground">{result.notes ?? "The demo could not be built."}</p>
+				<p className="mt-2 text-sm text-muted-foreground">{result.notes ?? t("The demo could not be built.")}</p>
 			</div>
 		);
 	}
@@ -137,6 +143,7 @@ function DemoFrame({
 	initialInverted?: boolean;
 }) {
 	const actions = useContext(ChatActionsContext);
+	const { t } = useT();
 	const iframeRef = useRef<HTMLIFrameElement | null>(null);
 	const [state, setState] = useState<DemoBridgeState>(INITIAL_DEMO_BRIDGE_STATE);
 	// Brightness inversion (owner, 2026-10-07): the switch state PERSISTS on
@@ -163,11 +170,11 @@ function DemoFrame({
 			// Only messages from THIS demo's iframe (the sandbox gives it an
 			// opaque origin; the window reference still matches).
 			if (!iframeRef.current || event.source !== iframeRef.current.contentWindow) return;
-			setState((prev) => reduceDemoBridgeState(prev, event.data));
+			setState((prev) => reduceDemoBridgeState(prev, event.data, t));
 		};
 		window.addEventListener("message", onMessage);
 		return () => window.removeEventListener("message", onMessage);
-	}, []);
+	}, [t]);
 
 	return (
 		<div className="rounded-xl border bg-card p-4 text-card-foreground" data-testid="demo-card">
@@ -177,7 +184,7 @@ function DemoFrame({
 			<div className="flex items-center justify-between gap-2">
 				<div className="flex min-w-0 items-baseline gap-2">
 					<span className="shrink-0 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-						interactive demo
+						{t("interactive demo")}
 					</span>
 					<span className="truncate text-xs font-medium tracking-wide text-foreground">{title}</span>
 				</div>
@@ -186,13 +193,13 @@ function DemoFrame({
 						checked={inverted}
 						onChange={toggleInverted}
 						label="Invert demo brightness"
-						title="Invert colors"
+						title={t("Invert colors")}
 						discIcon={<InvertDiscIcon className="size-3" />}
 					/>
 					<button
 						type="button"
 						aria-label="Download demo as HTML"
-						title="Download as HTML"
+						title={t("Download as HTML")}
 						onClick={() => downloadFile(`${slugFilename(title)}.html`, html, "text/html")}
 						data-testid="demo-download"
 						className="rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
@@ -245,12 +252,13 @@ export function DemoErrorChip({
 	message: string;
 	onSend?: () => void;
 }) {
+	const { t } = useT();
 	return (
 		<div
 			className="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-error/10 px-3 py-2 text-sm text-error"
 			data-testid="demo-error-chip"
 		>
-			<span className="font-medium">This demo threw an error</span>
+			<span className="font-medium">{t("This demo threw an error")}</span>
 			<span className="min-w-0 flex-1 truncate font-mono text-xs" title={message}>
 				{message}
 			</span>
@@ -261,7 +269,7 @@ export function DemoErrorChip({
 					className="rounded-md border border-error/40 px-2 py-1 text-xs font-medium hover:bg-error/15"
 					data-testid="demo-error-send"
 				>
-					Send to teacher
+					{t("Send to teacher")}
 				</button>
 			)}
 		</div>

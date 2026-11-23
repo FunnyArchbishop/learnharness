@@ -2,6 +2,8 @@
 
 import { useEffect, useState, type ReactElement, type ReactNode } from "react";
 import { HostDialog } from "@/components/host-dialog";
+import { useT } from "@/components/i18n";
+import type { Translator } from "@/src/i18n";
 import type { ChatDeleteMode, ChatListItem, FolderDeletionScope } from "@/src/core";
 
 /** The graph-traces checkbox copy (owner, 2026-09-24 flow rework — was
@@ -31,23 +33,29 @@ export const SESSION_DELETE_COPY: DeleteDialogCopy = {
 	traces: TRACES_COPY,
 };
 
-const count = (n: number, one: string, many: string) => `${n} ${n === 1 ? one : many}`;
+/** Identity translator: the copy stays English when no translator is passed
+ *  (tests and any non-localized caller), byte-identical to the old text. */
+const identityTranslator: Translator = (source) => source;
 
 /** The folder Delete's wording (owner, 2026-11-18): the session dialog's
- *  shape, plural, saying what goes and where notes move. */
-export function folderDeleteCopy(input: { sessions: number; subfolders: number; notes: number; parentName: string | null }): DeleteDialogCopy {
-	const what = [count(input.sessions, "session", "sessions"), ...(input.subfolders ? [count(input.subfolders, "subfolder", "subfolders")] : [])].join(" and ");
+ *  shape, plural, saying what goes and where notes move. Localized through
+ *  `t` (i18n wave): the sentence is a template with `{{what}}`/`{{notes}}`
+ *  so word order can follow the language. */
+export function folderDeleteCopy(input: { sessions: number; subfolders: number; notes: number; parentName: string | null }, t: Translator = identityTranslator): DeleteDialogCopy {
+	const countIn = (n: number, one: string, many: string) => `${n} ${n === 1 ? t(one) : t(many)}`;
+	const what = [countIn(input.sessions, "session", "sessions"), ...(input.subfolders ? [countIn(input.subfolders, "subfolder", "subfolders")] : [])].join(t(" and "));
+	const where = input.parentName === null ? t("the top level") : `“${input.parentName}”`;
 	const notes = input.notes
-		? ` ${count(input.notes, "imported notes file", "imported notes files")} inside ${input.notes === 1 ? "moves" : "move"} to ${input.parentName === null ? "the top level" : `“${input.parentName}”`}.`
+		? t(input.notes === 1 ? " {{n}} imported notes file inside moves to {{where}}." : " {{n}} imported notes files inside move to {{where}}.", { n: input.notes, where })
 		: "";
 	return {
-		label: "Delete folder",
+		label: t("Delete folder"),
 		testid: "delete-folder-dialog",
-		heading: "Delete folder?",
-		body: `This permanently removes the folder and the ${what} inside — the sessions’ messages, background jobs, and extraction records. Everything they added to the graph stays unless you check below.${notes} This cannot be undone.`,
+		heading: t("Delete folder?"),
+		body: t("This permanently removes the folder and the {{what}} inside — the sessions’ messages, background jobs, and extraction records. Everything they added to the graph stays unless you check below.{{notes}} This cannot be undone.", { what, notes }),
 		traces: {
-			title: "Also remove their graph traces",
-			body: "These sessions’ topics, links, and events leave the graph too. Topics other sessions or imported notes also cover survive; topics only these sessions created are removed entirely.",
+			title: t("Also remove their graph traces"),
+			body: t("These sessions’ topics, links, and events leave the graph too. Topics other sessions or imported notes also cover survive; topics only these sessions created are removed entirely."),
 		},
 	};
 }
@@ -88,6 +96,7 @@ export function DeleteSessionDialog({
 }) {
 	const [traces, setTraces] = useState(false);
 	const [busy, setBusy] = useState(false);
+	const { t } = useT();
 	// Retry IS pressing Delete again: the mode always derives from the
 	// checkbox's current state (a toggle between failure and retry is a
 	// change of intent, honored as such — the checkbox is disabled while
@@ -119,13 +128,13 @@ export function DeleteSessionDialog({
 			if (!res.ok) {
 				// 409 (turn/jobs running) and 503 (extraction winding down) are
 				// both retryable — keep the dialog open, show the server's line.
-				setFailure({ code: body.code ?? "error", error: body.error ?? `Delete failed (${res.status})` });
+				setFailure({ code: body.code ?? "error", error: body.error ?? t("Delete failed ({{status}})", { status: res.status }) });
 				setBusy(false);
 				return;
 			}
 			onDeleted(chat.id, mode, body.graphRevision ?? 0);
 		} catch {
-			setFailure({ code: "network", error: "Delete failed — network error. Try again." });
+			setFailure({ code: "network", error: t("Delete failed — network error. Try again.") });
 			setBusy(false);
 		}
 	};
@@ -172,6 +181,7 @@ export function DeleteSessionBody({
 	/** The wording; the folder Delete reuses this exact surface. */
 	copy?: DeleteDialogCopy;
 }) {
+	const { t } = useT();
 	const frame = (
 		<div
 			role="dialog"
@@ -181,7 +191,7 @@ export function DeleteSessionBody({
 			onClick={(e) => e.stopPropagation()}
 			className="w-[32rem] max-w-[calc(100vw-2rem)] rounded-xl border bg-card p-5 shadow-xl"
 		>
-			<h2 className="text-sm font-semibold text-destructive">{copy.heading}</h2>
+			<h2 className="text-sm font-semibold text-destructive">{t(copy.heading)}</h2>
 			{/* The session name below the title in JetBrains Mono (owner,
 			    2026-09-24): no code-block chrome — the font already says
 			    code. Owner, 2026-10-13 polish: normal text-sm size (was
@@ -192,7 +202,7 @@ export function DeleteSessionBody({
 					{chat.title}
 				</code>
 			</div>
-			<p className="mt-2 text-sm text-muted-foreground">{copy.body}</p>
+			<p className="mt-2 text-sm text-muted-foreground">{t(copy.body)}</p>
 			<label
 				data-testid={TRACES_COPY.testid}
 				className="mt-4 flex cursor-pointer items-start gap-2.5 rounded-lg border border-border/60 px-4 py-3"
@@ -206,8 +216,8 @@ export function DeleteSessionBody({
 					className="mt-0.5 size-4 shrink-0 accent-primary"
 				/>
 				<span className="min-w-0">
-					<span className="block text-sm text-foreground">{copy.traces.title}</span>
-					<span className="mt-1 block text-xs text-muted-foreground">{copy.traces.body}</span>
+					<span className="block text-sm text-foreground">{t(copy.traces.title)}</span>
+					<span className="mt-1 block text-xs text-muted-foreground">{t(copy.traces.body)}</span>
 				</span>
 			</label>
 			{failure && (
@@ -224,7 +234,7 @@ export function DeleteSessionBody({
 						disabled={busy}
 						className="ml-3 text-xs text-foreground underline-offset-2 hover:underline disabled:opacity-40"
 					>
-						Try again
+						{t("Try again")}
 					</button>
 				</div>
 			)}
@@ -239,7 +249,7 @@ export function DeleteSessionBody({
 					disabled={busy}
 					className="rounded-sm px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground disabled:opacity-40"
 				>
-					Cancel
+					{t("Cancel")}
 				</button>
 				<button
 					type="button"
@@ -248,7 +258,7 @@ export function DeleteSessionBody({
 					disabled={busy}
 					className="rounded-sm border border-destructive/50 bg-destructive/10 px-3 py-1.5 text-xs text-destructive transition-colors hover:bg-destructive/20 disabled:opacity-40"
 				>
-					{busy ? "Deleting…" : "Delete"}
+					{busy ? t("Deleting…") : t("Delete")}
 				</button>
 			</div>
 		</div>
@@ -271,6 +281,7 @@ export function DeleteFolderDialog({
 	const [traces, setTraces] = useState(false);
 	const [busy, setBusy] = useState(false);
 	const [failure, setFailure] = useState<{ code: string; error: string } | null>(null);
+	const { t } = useT();
 	useEffect(() => {
 		if (!folder) {
 			setTraces(false);
@@ -292,17 +303,17 @@ export function DeleteFolderDialog({
 			});
 			const body = (await res.json()) as { error?: string; code?: string; graphRevision?: number; deletedChatIds?: string[] };
 			if (body.code === "folder_scope_changed" || body.code === "not_found") {
-				onStale(body.error ?? "This folder changed. Nothing was deleted.");
+				onStale(body.error ?? t("This folder changed. Nothing was deleted."));
 				return;
 			}
 			if (!res.ok) {
-				setFailure({ code: body.code ?? "error", error: body.error ?? `Delete failed (${res.status})` });
+				setFailure({ code: body.code ?? "error", error: body.error ?? t("Delete failed ({{status}})", { status: res.status }) });
 				setBusy(false);
 				return;
 			}
 			onDeleted({ deletedChatIds: body.deletedChatIds ?? [], graphRevision: body.graphRevision ?? 0 });
 		} catch {
-			setFailure({ code: "network", error: "Delete failed — network error. Try again." });
+			setFailure({ code: "network", error: t("Delete failed — network error. Try again.") });
 			setBusy(false);
 		}
 	};

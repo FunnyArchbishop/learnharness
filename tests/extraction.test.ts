@@ -1497,9 +1497,11 @@ describe("the extractor redesign (owner, 2026-09-30): chains are the deliverable
 	it("preserves the complete teaching-session prompt byte-for-byte", () => {
 		// Original UTF-8 snapshot, including every newline, preamble and the
 		// session-only anchor rule. Notes-only changes must not alter it.
+		// Language wave (2026-11-23): the extractor now writes Chinese names
+		// and statements itself, so the snapshot moved once.
 		assert.equal(
 			createHash("sha256").update(EXTRACTOR_INSTRUCTIONS, "utf8").digest("hex"),
-			"a8bddd7d47130ed5e39ffe7d8d0ed6efdd6b30407d52cd9838e7be2e465089a6",
+			"5cbff0fcd51836ae89ca81e64d629eed0059a5493df585c91de54ed5243fdfa3",
 		);
 	});
 

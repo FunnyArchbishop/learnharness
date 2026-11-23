@@ -410,6 +410,12 @@ derivation.`,
 	knowledge: `The graph holds TRUE ideas about the world, nothing else — never anything about the learner, the
 teacher, or this reading: not "the learner understands X" but X. A misconception enters as its TRUE
 correction. Each statement is one self-contained idea at full precision.`,
+	language: `Every proposition name and statement is written in Simplified Chinese (简体中文) — the graph reads
+in the learner's language from the moment it is extracted, not after a later translation. Names carry
+the discipline's own established Chinese term rather than a transliterated gloss. Keep proper names,
+code identifiers, formulas, and symbols in their original form, adding the Chinese rendering in
+parentheses only where it aids recognition; when the source text is already Chinese, preserve its
+wording.`,
 	standalone: `Every idea must stand
 alone for a reader who never saw this source: names and statements may not lean on the source's own
 scaffolding (claim numbering, axiom tags, arc labels); a claim that only matters as part of how this
@@ -428,7 +434,7 @@ arguments. The tool's field descriptions carry the details.`,
 } as const;
 
 function composeExtractionInstructions(preamble: string, goal: string, selection: string): string {
-	return `${preamble}\n\n${goal}\n${EXTRACTION_CORE.entailment}\n\n${EXTRACTION_CORE.knowledge}\n\n${selection} ${EXTRACTION_CORE.standalone}\n\n${EXTRACTION_CORE.continuation}\n\n${EXTRACTION_CORE.submission}`;
+	return `${preamble}\n\n${goal}\n${EXTRACTION_CORE.entailment}\n\n${EXTRACTION_CORE.knowledge}\n\n${EXTRACTION_CORE.language}\n\n${selection} ${EXTRACTION_CORE.standalone}\n\n${EXTRACTION_CORE.continuation}\n\n${EXTRACTION_CORE.submission}`;
 }
 
 // Each front door owns its goal and selection wording independently of the
